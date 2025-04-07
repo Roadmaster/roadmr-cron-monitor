@@ -17,7 +17,6 @@ FLYRESTARTER_DATABASE="/data/restarter.db"
   auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
-  processes = ['app']
 
 [[vm]]
   memory = '1gb'
