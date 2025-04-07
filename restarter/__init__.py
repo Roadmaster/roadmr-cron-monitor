@@ -26,14 +26,15 @@ app.config.from_prefixed_env(prefix="FLYRESTARTER")
 
 @dataclass
 class MonitorIn:
-    last_check: datetime | None
+    name: str
     frequency: int  # Alert if last_check + frequency > now()
-    api_key: str
 
 
 @dataclass
 class Monitor(MonitorIn):
     id: int
+    last_check: datetime | None
+    api_key: str
 
 
 # non async
@@ -82,5 +83,9 @@ async def monitor_create(data: MonitorIn) -> Monitor:
     if admin_key != current_app.config["ADMIN_KEY"]:
         return Response(status=401)
     return Monitor(
-        id=1, api_key=data.api_key, frequency=data.frequency, last_check=data.last_check
+        id=1,
+        api_key="FOO",
+        frequency=data.frequency,
+        last_check=datetime.datetime.now(),
+        name=data.name,
     )
