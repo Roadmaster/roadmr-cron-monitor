@@ -1,23 +1,22 @@
-from dataclasses import dataclass
-from datetime import datetime
-import aiosqlite
-from pathlib import Path
-
-from quart import Quart, request, Response, current_app, g
-from quart_schema import (
-    QuartSchema,
-    validate_request,
-    validate_response,
-    RequestSchemaValidationError,
-)
+import logging
 import random
 import string
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 
-
+import aiosqlite
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
+from quart import Quart, Response, current_app, g, request
+from quart_schema import (
+    QuartSchema,
+    RequestSchemaValidationError,
+    validate_request,
+    validate_response,
+)
 
 app = Quart(__name__)
+app.logger.setLevel(logging.INFO)
 QuartSchema(app)
 
 CHECK_SCHED = 10
@@ -38,6 +37,18 @@ async def _get_db():
     if not hasattr(g, "sqlite_db"):
         g.sqlite_db = await _connect_db()
     return g.sqlite_db
+
+
+@app.before_serving
+async def init_db():
+    app.logger.info("Initializing db")
+    dbfile = app.config.get("DATABASE", "restarter-data.db")
+
+    async with aiosqlite.connect(dbfile) as db:
+        with open(Path(app.root_path) / "schema.sql", mode="r") as file_:
+            await db.executescript(file_.read())
+            await db.commit()
+    app.logger.info("Setup complete, serving")
 
 
 @dataclass
