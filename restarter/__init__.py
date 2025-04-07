@@ -86,6 +86,6 @@ async def monitor_create(data: MonitorIn) -> Monitor:
         id=1,
         api_key="FOO",
         frequency=data.frequency,
-        last_check=datetime.datetime.now(),
+        last_check=datetime.now(),
         name=data.name,
     )
