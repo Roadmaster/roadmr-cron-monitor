@@ -1,13 +1,17 @@
 from dataclasses import dataclass
 from datetime import datetime
+import aiosqlite
+from pathlib import Path
 
-from quart import Quart, request, Response, current_app
+from quart import Quart, request, Response, current_app, g
 from quart_schema import (
     QuartSchema,
     validate_request,
     validate_response,
     RequestSchemaValidationError,
 )
+import random
+import string
 
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -18,10 +22,22 @@ QuartSchema(app)
 
 CHECK_SCHED = 10
 
-URL_TO_CHECK = "https://ubunty.fly.dev/health"
-
 
 app.config.from_prefixed_env(prefix="FLYRESTARTER")
+
+
+# Unused
+async def _connect_db():
+    engine = await aiosqlite.connect(app.config.get("DATABASE", "restarter-data.db"))
+    engine.row_factory = aiosqlite.Row
+    return engine
+
+
+# Unused
+async def _get_db():
+    if not hasattr(g, "sqlite_db"):
+        g.sqlite_db = await _connect_db()
+    return g.sqlite_db
 
 
 @dataclass
@@ -75,6 +91,30 @@ async def monitor_update():
     api_key = request.headers.get("x-api-key", None)
 
 
+def random_monitor_key():
+    N = 16
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(random.SystemRandom().choice(alphabet) for _ in range(N))
+
+
+async def insert_monitor(name, api_key, frequency):
+    query = (
+        "INSERT INTO monitor (name, api_key, frequency) "
+        "VALUES (:na, :ak, :fr) returning id"
+    )
+    dbfile = app.config.get("DATABASE", "restarter-data.db")
+    async with aiosqlite.connect(dbfile) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            query,
+            {"na": name, "ak": api_key, "fr": frequency},
+        ) as result:
+            value = await result.fetchone()
+            await db.commit()
+        id = value["id"]
+    return id
+
+
 @app.post("/monitors")
 @validate_request(MonitorIn)
 @validate_response(Monitor)
@@ -82,10 +122,15 @@ async def monitor_create(data: MonitorIn) -> Monitor:
     admin_key = request.headers.get("x-admin-key", None)
     if admin_key != current_app.config["ADMIN_KEY"]:
         return Response(status=401)
+    name = data.name
+    new_api_key = random_monitor_key()
+    frequency = data.frequency
+    print(await insert_monitor(name, new_api_key, frequency))
+
     return Monitor(
         id=1,
-        api_key="FOO",
-        frequency=data.frequency,
+        api_key=new_api_key,
+        frequency=frequency,
         last_check=datetime.now(),
-        name=data.name,
+        name=name,
     )
