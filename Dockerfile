@@ -26,4 +26,4 @@ RUN --mount=type=cache,target=/opt/uv-cache uv sync --no-group dev --frozen --co
 
 COPY ./ /code/
 
-CMD ["uv", "run", "--no-group", "dev","env/bin/uvicorn",  "app.main:app",  "-b", "0.0.0.0:8000", "--workers", "1"]
+CMD ["uv", "run", "--no-group", "dev","uvicorn",  "restarter:app", "--host", "0.0.0.0", "--port", "8000",  "--workers", "2"]
