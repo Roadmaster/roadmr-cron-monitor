@@ -1,0 +1,9 @@
+fly.toml
+log.log
+*.log
+env
+.venv
+.env
+instance
+setup.cfg
+token.pickle
