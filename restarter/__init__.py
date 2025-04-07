@@ -64,6 +64,11 @@ async def root():
     return "Hi there, I'm the flyrestarter"
 
 
+@app.get("/health")
+async def health():
+    return {"health": "good!"}
+
+
 @app.post("/monitor/<string:monitor_id>")
 async def monitor_update():
     api_key = request.headers.get("x-api-key", None)
