@@ -17,6 +17,7 @@ from quart_schema import (
 
 app = Quart(__name__)
 app.logger.setLevel(logging.INFO)
+logging.basicConfig()
 QuartSchema(app)
 
 CHECK_SCHED = 10
@@ -55,6 +56,12 @@ async def init_db():
 class MonitorIn:
     name: str
     frequency: int  # Alert if last_check + frequency > now()
+
+    def __post_init__(self):
+        if len(self.name) > 255:
+            raise ValueError("name must be 255 characters or less")
+        if self.frequency < 60 or self.frequency > 2592000:
+            raise ValueError("frequency must be between 60 seconds and 30 days")
 
 
 @dataclass
