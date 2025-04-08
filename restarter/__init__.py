@@ -8,12 +8,8 @@ from pathlib import Path
 
 import aiosqlite
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from quart import Quart, Response, current_app, g, request
-from quart_schema import (
-    QuartSchema,
-    RequestSchemaValidationError,
-    validate_request,
-)
+from quart import Quart, Response, current_app, g, jsonify, request
+from quart_schema import QuartSchema, RequestSchemaValidationError, validate_request
 
 app = Quart(__name__)
 app.logger.setLevel(logging.INFO)
@@ -158,7 +154,9 @@ async def monitor_update(monitor_slug):
         return Response(status=400)
     if not await update_monitor(monitor_slug, api_key):
         return Response(status=404)
-    return Response("all good", status=200)
+    response = jsonify("Update successful")
+    response.status = 200
+    return response
 
 
 def random_monitor_key():
