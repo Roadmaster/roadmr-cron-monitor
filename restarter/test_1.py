@@ -1,5 +1,5 @@
 import pytest
-from . import app, init_db
+from . import app, init_db, get_monitor_by_api_key_slug
 from urllib import parse
 
 
@@ -33,6 +33,10 @@ async def test_monitor_create(test_app):
     assert jr["report_if_not_called_in"] == 60
     assert "api_key" in jr
 
+    mon = await get_monitor_by_api_key_slug(jr["api_key"], "testslug")
+
+    assert mon is not None
+
 
 @pytest.mark.asyncio
 async def test_monitor_update(test_app):
@@ -54,3 +58,7 @@ async def test_monitor_update(test_app):
     assert response.status_code == 200
     jr = await response.json
     assert jr == "Update successful"
+
+    # Confirm it updated
+    mon = await get_monitor_by_api_key_slug(api_key, "testslug")
+    assert mon["last_check"] is not None  # because on creation it is none
