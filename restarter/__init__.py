@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+import apscheduler
 import aiosqlite
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from quart import Quart, Response, current_app, g, jsonify, request
@@ -22,6 +23,20 @@ CHECK_SCHED = 10
 app.config.from_prefixed_env(prefix="FLYRESTARTER")
 
 
+def adapt_datetime_iso(val):
+    """Adapt datetime.datetime to timezone-naive ISO 8601 date."""
+    return val.isoformat()
+
+
+def convert_datetime(val):
+    """Convert ISO 8601 datetime to datetime.datetime object."""
+    return datetime.fromisoformat(val.decode())
+
+
+aiosqlite.register_adapter(datetime, adapt_datetime_iso)
+aiosqlite.register_converter("datetime", convert_datetime)
+
+
 # Unused
 async def _connect_db():
     engine = await aiosqlite.connect(app.config.get("DATABASE", "restarter-data.db"))
@@ -36,6 +51,17 @@ async def _get_db():
     return g.sqlite_db
 
 
+# non async
+async def check_things():
+    app.logger.info("Checking service")
+    await get_expired_monitors()
+    print("WAHAHOO")
+
+
+scheduler = AsyncIOScheduler()
+scheduler.add_job(check_things, "interval", seconds=CHECK_SCHED)
+
+
 @app.before_serving
 async def init_db():
     app.logger.info("Initializing db")
@@ -46,6 +72,11 @@ async def init_db():
         with open(Path(app.root_path) / "schema.sql", mode="r") as file_:
             await db.executescript(file_.read())
             await db.commit()
+    # Start the scheduler
+    try:
+        scheduler.start()
+    except apscheduler.schedulers.SchedulerAlreadyRunningError:
+        pass
     app.logger.info("Setup complete, serving")
 
 
@@ -85,19 +116,6 @@ async def get_expired_monitors():
         ) as result:
             values = await result.fetchall()
     print([dict(r) for r in values])
-
-
-# non async
-async def check_things():
-    app.logger.info("Checking service")
-    await get_expired_monitors()
-    print("WAHAHOO")
-
-
-# Start the scheduler
-scheduler = AsyncIOScheduler()
-scheduler.add_job(check_things, "interval", seconds=CHECK_SCHED)
-scheduler.start()
 
 
 def run() -> None:
