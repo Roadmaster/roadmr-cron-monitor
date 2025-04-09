@@ -19,6 +19,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV UV_LINK_MODE=copy
 ENV UV_CACHE_DIR=/opt/uv-cache/
+COPY ./log_conf.yaml ./
 COPY ./pyproject.toml /code/pyproject.toml
 COPY ./uv.lock /code/uv.lock
 
@@ -26,4 +27,4 @@ RUN --mount=type=cache,target=/opt/uv-cache uv sync --no-group dev --frozen --co
 
 COPY ./ /code/
 
-CMD ["uv", "run", "--no-group", "dev","uvicorn",  "restarter:app", "--host", "0.0.0.0", "--port", "8000",  "--workers", "2"]
+CMD ["uv", "run", "--no-group", "dev","uvicorn",  "restarter:app", "--host", "0.0.0.0", "--port", "8000",  "--workers", "2", "--log-config", "log_conf.yaml"]
