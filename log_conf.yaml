@@ -27,8 +27,9 @@ loggers:
     handlers:
       - access
     propagate: no
-root:
-  level: DEBUG
-  handlers:
-    - default
-  propagate: no
+# Uncomment for debug level logging
+#root:
+#  level: DEBUG
+#  handlers:
+#    - default
+#  propagate: no
