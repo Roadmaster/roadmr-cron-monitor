@@ -2,6 +2,7 @@ import logging
 import random
 import re
 import string
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -37,6 +38,24 @@ aiosqlite.register_adapter(datetime, adapt_datetime_iso)
 aiosqlite.register_converter("datetime", convert_datetime)
 
 
+# @app.before_request
+def logging_before():
+    # Store the start time for the request
+    g.start_time = time.perf_counter()
+
+
+# @app.after_request
+def logging_after(response):
+    # Get total time in milliseconds
+    total_time = time.perf_counter() - g.start_time
+    time_in_ms = int(total_time * 1000)
+    # Log the time taken for the endpoint
+    current_app.logger.info(
+        "%s ms %s %s %s", time_in_ms, request.method, request.path, dict(request.args)
+    )
+    return response
+
+
 # Unused
 async def _connect_db():
     engine = await aiosqlite.connect(app.config.get("DATABASE", "restarter-data.db"))
@@ -68,7 +87,6 @@ async def init_db():
     dbfile = app.config.get("DATABASE", "restarter-data.db")
 
     async with aiosqlite.connect(dbfile) as db:
-        await db.set_trace_callback(app.logger.info)
         with open(Path(app.root_path) / "schema.sql", mode="r") as file_:
             await db.executescript(file_.read())
             await db.commit()
@@ -108,7 +126,6 @@ async def get_expired_monitors():
 
     dbfile = app.config.get("DATABASE", "restarter-data.db")
     async with aiosqlite.connect(dbfile) as db:
-        await db.set_trace_callback(app.logger.info)
         db.row_factory = aiosqlite.Row
         async with db.execute(
             query,
@@ -123,7 +140,6 @@ async def get_monitor_by_api_key_slug(api_key, slug):
 
     dbfile = app.config.get("DATABASE", "restarter-data.db")
     async with aiosqlite.connect(dbfile) as db:
-        await db.set_trace_callback(app.logger.info)
         db.row_factory = aiosqlite.Row
         async with db.execute(
             query,
@@ -165,7 +181,7 @@ async def update_monitor(slug, apikey):
     now_ts = datetime.now().timestamp()
     dbfile = app.config.get("DATABASE", "restarter-data.db")
     async with aiosqlite.connect(dbfile) as db:
-        await db.set_trace_callback(app.logger.info)
+        # await db.set_trace_callback(app.logger.info)
         db.row_factory = aiosqlite.Row
         async with db.execute(
             query,
@@ -205,7 +221,6 @@ async def insert_monitor(name, api_key, frequency, slug):
     )
     dbfile = app.config.get("DATABASE", "restarter-data.db")
     async with aiosqlite.connect(dbfile) as db:
-        await db.set_trace_callback(app.logger.info)
         db.row_factory = aiosqlite.Row
         async with db.execute(
             query,
