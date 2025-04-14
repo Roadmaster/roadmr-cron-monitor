@@ -1,21 +1,23 @@
 import logging
+import asyncio
 import random
 import re
 import string
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
 
 import apscheduler
 import aiosqlite
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from quart import Quart, Response, current_app, g, jsonify, request
 from quart_schema import QuartSchema, RequestSchemaValidationError, validate_request
+from alembic.config import Config
+from alembic import command
 
 app = Quart(__name__)
 app.logger.setLevel(logging.INFO)
-logging.basicConfig()
+
 QuartSchema(app)
 
 CHECK_SCHED = 10
@@ -74,23 +76,29 @@ async def _get_db():
 async def check_things():
     app.logger.info("Checking service")
     await get_expired_monitors()
-    print("WAHAHOO")
+
+
+async def run_migrations(db_path):
+    acfg = Config("alembic.ini")
+    acfg.set_main_option("sqlalchemy.url", f"sqlite+aiosqlite:///{db_path}")
+    await asyncio.to_thread(command.upgrade, acfg, "head")
 
 
 scheduler = AsyncIOScheduler()
 scheduler.add_job(check_things, "interval", seconds=CHECK_SCHED)
 
 
-@app.before_serving
 async def init_db():
-    app.logger.info("Initializing db")
     dbfile = app.config.get("DATABASE", "restarter-data.db")
+    await run_migrations(dbfile)
 
-    async with aiosqlite.connect(dbfile) as db:
-        with open(Path(app.root_path) / "schema.sql", mode="r") as file_:
-            await db.executescript(file_.read())
-            await db.commit()
+
+@app.before_serving
+async def before_serving():
+    app.logger.info("Initializing db")
+    await init_db()
     # Start the scheduler
+    app.logger.info("Starting scheduler")
     try:
         scheduler.start()
     except apscheduler.schedulers.SchedulerAlreadyRunningError:
@@ -132,7 +140,7 @@ async def get_expired_monitors():
             {},
         ) as result:
             values = await result.fetchall()
-    print([dict(r) for r in values])
+    app.logger.info([dict(r) for r in values])
 
 
 async def get_monitor_by_api_key_slug(api_key, slug):
