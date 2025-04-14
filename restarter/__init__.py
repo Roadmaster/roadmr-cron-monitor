@@ -16,6 +16,7 @@ from alembic.config import Config
 from alembic import command
 
 app = Quart(__name__)
+logging.basicConfig()
 app.logger.setLevel(logging.INFO)
 
 QuartSchema(app)

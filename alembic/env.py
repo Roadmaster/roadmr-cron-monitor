@@ -13,8 +13,8 @@ config = context.config
 
 
 # alembic logging is a fucking nightmare
-# if config.config_file_name is not None:
-#    fileConfig(config.config_file_name)
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
