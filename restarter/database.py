@@ -1,8 +1,9 @@
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.sql import text
-import sqlalchemy as sa
 import logging
 from datetime import datetime
+
+import sqlalchemy as sa
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.sql import text
 
 logger = logging.getLogger(__name__)
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
