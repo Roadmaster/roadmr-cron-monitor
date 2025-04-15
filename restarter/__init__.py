@@ -16,7 +16,12 @@ from quart_schema import QuartSchema, RequestSchemaValidationError, validate_req
 from alembic.config import Config
 from alembic import command
 
+
+from . import database
+
 app = Quart(__name__)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 QuartSchema(app)
 
@@ -75,7 +80,8 @@ async def _get_db():
 # non async
 async def check_things():
     app.logger.info("Checking service")
-    await get_expired_monitors()
+    # await get_expired_monitors()
+    await database.get_expired_monitors()
 
 
 async def run_migrations(db_path):
@@ -104,7 +110,6 @@ async def before_serving():
     except apscheduler.schedulers.SchedulerAlreadyRunningError:
         pass
     print("SQLA TEST")
-    from . import database
 
     await database.get_expired_monitors()
     app.logger.info("Setup complete, serving")
@@ -138,20 +143,6 @@ class Monitor(MonitorIn):
     last_check: datetime | None
     expires_at: int  # in epoch seconds
     api_key: str
-
-
-async def get_expired_monitors():
-    query = "SELECT * from monitor " "WHERE expires_at < strftime('%s') "
-
-    dbfile = app.config.get("DATABASE", "restarter-data.db")
-    async with aiosqlite.connect(dbfile) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            query,
-            {},
-        ) as result:
-            values = await result.fetchall()
-    app.logger.info([dict(r) for r in values])
 
 
 async def get_monitor_by_api_key_slug(api_key, slug):
@@ -233,30 +224,6 @@ def random_monitor_key():
     return "".join(random.SystemRandom().choice(alphabet) for _ in range(N))
 
 
-async def insert_monitor(name, api_key, frequency, slug):
-    query = (
-        "INSERT INTO monitor (name, api_key, frequency, slug, expires_at) "
-        "VALUES (:na, :ak, :fr, :ms, :ea) returning id"
-    )
-    dbfile = app.config.get("DATABASE", "restarter-data.db")
-    async with aiosqlite.connect(dbfile) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            query,
-            {
-                "na": name,
-                "ak": api_key,
-                "fr": frequency,
-                "ms": slug,
-                "ea": datetime.now().timestamp() + frequency,
-            },
-        ) as result:
-            value = await result.fetchone()
-            await db.commit()
-        id = value["id"]
-    return id
-
-
 @app.post("/monitors")
 @validate_request(MonitorIn)
 async def monitor_create(data: MonitorIn):
@@ -267,7 +234,7 @@ async def monitor_create(data: MonitorIn):
     new_api_key = random_monitor_key()
     frequency = data.frequency
     slug = data.slug
-    monitor_id = await insert_monitor(name, new_api_key, frequency, slug)
+    monitor_id = await database.insert_monitor(name, new_api_key, frequency, slug)
 
     monitor = Monitor(
         id=monitor_id,

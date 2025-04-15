@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
-
+logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 meta = sa.MetaData()
 
@@ -56,5 +56,29 @@ async def get_expired_monitors():
     statement = sa.select(t_monitors).where(t_monitors.c.expires_at < when)
     async with get_engine().connect() as conn:
         result = await conn.execute(statement)
-        print(result.fetchall())
+        print([{"name": r.name, "exp": r.expires_at} for r in result.fetchall()])
+        # result.mappings().fetchall() returns a traditional list of dicts
+
     await get_engine().dispose()
+
+
+async def insert_monitor(name, api_key, frequency, slug):
+    query = (
+        "INSERT INTO monitor (name, api_key, frequency, slug, expires_at) "
+        "VALUES (:na, :ak, :fr, :ms, :ea) returning id"
+    )
+    statement = text(query)
+    async with get_engine().begin() as conn:
+        result = await conn.execute(
+            statement,
+            {
+                "na": name,
+                "ak": api_key,
+                "fr": frequency,
+                "ms": slug,
+                "ea": datetime.now().timestamp() + frequency,
+            },
+        )
+        the_id = result.fetchone().id
+    await get_engine().dispose()
+    return the_id
