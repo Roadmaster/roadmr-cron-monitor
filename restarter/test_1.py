@@ -1,6 +1,9 @@
-import pytest
-from . import app, init_db, get_monitor_by_api_key_slug
 from urllib import parse
+
+import pytest
+
+from . import app, init_db
+from .database import get_monitor_by_api_key_slug
 
 
 @pytest.fixture(name="test_app")
