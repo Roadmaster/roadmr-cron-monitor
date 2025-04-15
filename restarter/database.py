@@ -72,6 +72,30 @@ async def get_expired_monitors():
     await get_engine().dispose()
 
 
+async def update_monitor(slug, apikey):
+    query = (
+        "UPDATE monitor SET last_check=:now, "
+        "expires_at=:now_ts + frequency "
+        "WHERE api_key=:apikey AND slug=:slug "
+        "RETURNING id"
+    )
+    statement = text(query)
+
+    now_ts = datetime.now().timestamp()
+    async with get_engine().begin() as conn:
+        result = await conn.execute(
+            statement,
+            {"now": datetime.now(), "apikey": apikey, "slug": slug, "now_ts": now_ts},
+        )
+
+        value = result.fetchone()
+        if value:
+            id = value.id
+        else:
+            id = None
+        return id
+
+
 async def insert_monitor(name, api_key, frequency, slug):
     query = (
         "INSERT INTO monitor (name, api_key, frequency, slug, expires_at) "

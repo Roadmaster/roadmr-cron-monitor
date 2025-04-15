@@ -80,7 +80,6 @@ async def _get_db():
 # non async
 async def check_things():
     app.logger.info("Checking service")
-    # await get_expired_monitors()
     await database.get_expired_monitors()
 
 
@@ -166,38 +165,12 @@ async def health():
     return {"health": "good!"}
 
 
-async def update_monitor(slug, apikey):
-    query = (
-        "UPDATE monitor SET last_check=:now, "
-        "expires_at=:now_ts + frequency "
-        "WHERE api_key=:apikey AND slug=:slug "
-        "RETURNING id"
-    )
-
-    now_ts = datetime.now().timestamp()
-    dbfile = app.config.get("DATABASE", "restarter-data.db")
-    async with aiosqlite.connect(dbfile) as db:
-        # await db.set_trace_callback(app.logger.info)
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            query,
-            {"now": datetime.now(), "apikey": apikey, "slug": slug, "now_ts": now_ts},
-        ) as result:
-            value = await result.fetchone()
-            await db.commit()
-        if value:
-            id = value["id"]
-        else:
-            id = None
-    return id
-
-
 @app.post("/monitor/<string:monitor_slug>")
 async def monitor_update(monitor_slug):
     api_key = request.headers.get("x-api-key", None)
     if not api_key:
         return Response(status=400)
-    if not await update_monitor(monitor_slug, api_key):
+    if not await database.update_monitor(monitor_slug, api_key):
         return Response(status=404)
     response = jsonify("Update successful")
     response.status = 200
