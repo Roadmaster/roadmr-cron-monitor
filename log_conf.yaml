@@ -3,13 +3,10 @@ disable_existing_loggers: False
 formatters:
   default:
     # "()": uvicorn.logging.DefaultFormatter
-    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format: 'DF: %(asctime)s - %(name)s - %(levelname)s - %(message)s'
   access:
     # "()": uvicorn.logging.AccessFormatter
-    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-  alembic:
-    format: '%(levelname)-5.5s [%(name)s] %(message)s'
-    datefmt: '%H:%M:%S'
+    format: 'AC: %(asctime)s - %(name)s - %(levelname)s - %(message)s'
 handlers:
   default:
     formatter: default
@@ -17,10 +14,6 @@ handlers:
     stream: ext://sys.stderr
   access:
     formatter: access
-    class: logging.StreamHandler
-    stream: ext://sys.stdout
-  alembic:
-    formatter: alembic
     class: logging.StreamHandler
     stream: ext://sys.stdout
 loggers:
@@ -34,10 +27,15 @@ loggers:
     handlers:
       - access
     propagate: no
-  alembicux:
-    level: INFO
+  sqlalchemy:
+    level: WARNING
     handlers:
-      - alembic
+      - default
+    propagate: no
+  sqlalchemy.engine.Engine:
+    level: WARNING
+    handlers:
+      - default
     propagate: no
 # Uncomment for debug level logging
 #root:

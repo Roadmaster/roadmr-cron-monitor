@@ -4,6 +4,7 @@ import random
 import re
 import string
 import time
+import os
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -104,7 +105,18 @@ async def before_serving():
         scheduler.start()
     except apscheduler.schedulers.SchedulerAlreadyRunningError:
         pass
+    print("SQLA TEST")
+    from . import database
+
+    await database.get_expired_monitors()
     app.logger.info("Setup complete, serving")
+    if os.environ.get("PRINT_LOGGING_TREE"):
+        try:
+            import logging_tree
+
+            logging_tree.printout()
+        except ModuleNotFoundError:
+            pass
 
 
 @dataclass
