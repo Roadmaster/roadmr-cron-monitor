@@ -27,3 +27,6 @@ dev = [
 [tool.pytest.ini_options]
 minversion = "8.3"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.isort]
+line_length = 88
