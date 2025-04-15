@@ -145,20 +145,6 @@ class Monitor(MonitorIn):
     api_key: str
 
 
-async def get_monitor_by_api_key_slug(api_key, slug):
-    query = "SELECT * from monitor " "WHERE api_key=:ap AND slug=:sl"
-
-    dbfile = app.config.get("DATABASE", "restarter-data.db")
-    async with aiosqlite.connect(dbfile) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            query,
-            {"ap": api_key, "sl": slug},
-        ) as result:
-            r = await result.fetchone()
-    return dict(r)
-
-
 def run() -> None:
     app.run()
 

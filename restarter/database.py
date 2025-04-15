@@ -50,6 +50,15 @@ def get_engine():
     return engine
 
 
+async def get_monitor_by_api_key_slug(api_key, slug):
+    query = "SELECT * from monitor " "WHERE api_key=:ap AND slug=:sl"
+    statement = text(query)
+    async with get_engine().connect() as conn:
+        result = await conn.execute(statement, {"ap": api_key, "sl": slug})
+        r = result.mappings().fetchone()
+    return r
+
+
 async def get_expired_monitors():
     query = "SELECT * from monitor " "WHERE expires_at < strftime('%s') "
     statement = text(query)
