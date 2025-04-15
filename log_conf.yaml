@@ -38,8 +38,8 @@ loggers:
       - default
     propagate: no
 # Uncomment for debug level logging
-#root:
-#  level: DEBUG
-#  handlers:
-#    - default
-#  propagate: no
+root:
+  level: INFO
+  handlers:
+    - default
+  propagate: no
