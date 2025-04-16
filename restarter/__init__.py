@@ -11,7 +11,7 @@ from datetime import datetime
 import aiosqlite
 import apscheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from quart import Quart, Response, current_app, g, jsonify, request
+from quart import Quart, Response, current_app, g, jsonify, request, url_for
 from quart_schema import QuartSchema, RequestSchemaValidationError, validate_request
 
 from alembic import command
@@ -192,7 +192,9 @@ async def monitor_create(data: MonitorIn):
     )
 
     return {
-        "monitor_url": f"https://foo.bar/monitor/{monitor.slug}",
+        "monitor_url": url_for(
+            "monitor_update", monitor_slug=monitor.slug, _external=True
+        ),
         "report_if_not_called_in": monitor.frequency,
         "name": monitor.name,
         "api_key": monitor.api_key,
