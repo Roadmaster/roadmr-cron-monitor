@@ -17,9 +17,15 @@ from quart_schema import QuartSchema, RequestSchemaValidationError, validate_req
 from alembic import command
 from alembic.config import Config
 
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+
 from . import database
 
 app = Quart(__name__)
+app.asgi_app = ProxyHeadersMiddleware(
+    app.asgi_app, trusted_hosts=["172.16.0.0/12", "127.0.0.1"]
+)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
