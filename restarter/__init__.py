@@ -63,20 +63,6 @@ def logging_after(response):
     return response
 
 
-# Unused
-async def _connect_db():
-    engine = await aiosqlite.connect(app.config.get("DATABASE", "restarter-data.db"))
-    engine.row_factory = aiosqlite.Row
-    return engine
-
-
-# Unused
-async def _get_db():
-    if not hasattr(g, "sqlite_db"):
-        g.sqlite_db = await _connect_db()
-    return g.sqlite_db
-
-
 # non async
 async def check_things():
     app.logger.info("Checking service")
