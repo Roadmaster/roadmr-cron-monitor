@@ -1,12 +1,14 @@
 version: 1
-disable_existing_loggers: False
+disable_existing_loggers: True
 formatters:
   default:
     # "()": uvicorn.logging.DefaultFormatter
-    format: 'DF: %(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format: 'DF: %(asctime)s [%(levelname)s] %(name)s: %(message)s'
+    class: uvicorn.logging.DefaultFormatter
   access:
     # "()": uvicorn.logging.AccessFormatter
-    format: 'AC: %(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format: 'AC: %(asctime)s %(name)s: %(message)s'
+    class: uvicorn.logging.AccessFormatter
 handlers:
   default:
     formatter: default
@@ -31,12 +33,12 @@ loggers:
     level: WARNING
     handlers:
       - default
-    propagate: no
-  sqlalchemy.engine.Engine:
+    propagate: yes
+  apscheduler:
     level: WARNING
     handlers:
       - default
-    propagate: no
+    propagate: yes
 # Uncomment for debug level logging
 root:
   level: INFO

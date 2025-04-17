@@ -14,8 +14,9 @@ config = context.config
 
 
 # alembic logging is a fucking nightmare
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name, disable_existing_loggers=False)
+# Logging in alembic disabled for now
+#if config.config_file_name is not None:
+#    fileConfig(config.config_file_name, disable_existing_loggers=False)
 # Meta for automigration support
 target_metadata = database.meta
 

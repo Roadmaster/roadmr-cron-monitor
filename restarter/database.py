@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.sql import text
 
 logger = logging.getLogger(__name__)
-logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 meta = sa.MetaData()
 
@@ -46,7 +45,7 @@ def get_engine():
     from . import app
 
     dbfile = app.config.get("DATABASE")
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbfile}", echo=True)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbfile}", echo=False)
     return engine
 
 
@@ -66,7 +65,8 @@ async def get_expired_monitors():
     statement = sa.select(t_monitors).where(t_monitors.c.expires_at < when)
     async with get_engine().connect() as conn:
         result = await conn.execute(statement)
-        print([{"name": r.name, "exp": r.expires_at} for r in result.fetchall()])
+        # logger.info([{"name": r.name, "exp": r.expires_at} for r in result.fetchall()])
+        logger.info("%s expired monitors" % len(result.fetchall()))
         # result.mappings().fetchall() returns a traditional list of dicts
 
     await get_engine().dispose()
