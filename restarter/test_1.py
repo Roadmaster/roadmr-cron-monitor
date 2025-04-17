@@ -13,6 +13,19 @@ def _test_app(tmpdir):
     return app
 
 
+@pytest.fixture
+def min_create_payload(test_app):
+    return dict(
+        headers={"x-admin-key": test_app.config["ADMIN_KEY"]},
+        json={
+            "frequency": 60,
+            "name": "testmon",
+            "slug": "testslug",
+            "webhook": {"url": "https://foo2.com", "method": "post"},
+        },
+    )
+
+
 @pytest.mark.asyncio
 async def test_app(test_app):
     client = app.test_client()
@@ -21,16 +34,13 @@ async def test_app(test_app):
 
 
 @pytest.mark.asyncio
-async def test_monitor_create(test_app):
+async def test_monitor_create(test_app, min_create_payload):
     await init_db()
     test_client = test_app.test_client()
-    response = await test_client.post(
-        "/monitors",
-        headers={"x-admin-key": test_app.config["ADMIN_KEY"]},
-        json={"frequency": 60, "name": "testmon", "slug": "testslug"},
-    )
+    response = await test_client.post("/monitors", **min_create_payload)
     assert response.status_code == 200
     jr = await response.json
+    print(jr)
     assert parse.urlparse(jr["monitor_url"]).path == "/monitor/testslug"
     assert jr["name"] == "testmon"
     assert jr["report_if_not_called_in"] == 60
@@ -42,14 +52,22 @@ async def test_monitor_create(test_app):
 
 
 @pytest.mark.asyncio
-async def test_monitor_update(test_app):
+async def test_monitor_create_bogus(test_app, min_create_payload):
     await init_db()
     test_client = test_app.test_client()
-    response = await test_client.post(
-        "/monitors",
-        headers={"x-admin-key": test_app.config["ADMIN_KEY"]},
-        json={"frequency": 60, "name": "testmon", "slug": "testslug"},
-    )
+    min_create_payload["json"]["webhook"] = {}
+    response = await test_client.post("/monitors", **min_create_payload)
+    assert response.status_code == 400
+    jr = await response.json
+    print(jr)
+    assert "errors" in jr
+
+
+@pytest.mark.asyncio
+async def test_monitor_update(test_app, min_create_payload):
+    await init_db()
+    test_client = test_app.test_client()
+    response = await test_client.post("/monitors", **min_create_payload)
     jr = await response.json
     api_key = jr["api_key"]
     path = parse.urlparse(jr["monitor_url"]).path

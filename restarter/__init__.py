@@ -113,11 +113,32 @@ async def before_serving():
             pass
 
 
+@dataclass(kw_only=True)
+class WebhookIn:
+    url: str
+    method: str
+    headers: dict | None = None
+    form_fields: dict | None = None
+    body_payload: str | None = None
+
+    def __post_init__(self):
+        if self.method.upper() not in ["POST", "GET"]:
+            raise ValueError("method must be post or get")
+
+
+@dataclass
+class Webhook(WebhookIn):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
 @dataclass
 class MonitorIn:
     name: str  # Descriptive name
     slug: str  # URLifiable slug
     frequency: int  # Alert if last_check + frequency > now()
+    webhook: WebhookIn
 
     def __post_init__(self):
         if len(self.name) > 255:
@@ -185,7 +206,16 @@ async def monitor_create(data: MonitorIn):
     new_api_key = random_monitor_key()
     frequency = data.frequency
     slug = data.slug
+    webhook = data.webhook
     monitor_id = await database.insert_monitor(name, new_api_key, frequency, slug)
+    webhook_id = await database.insert_webhook(
+        monitor_id,
+        webhook.url,
+        webhook.method,
+        webhook.headers,
+        webhook.form_fields,
+        webhook.body_payload,
+    )
 
     monitor = Monitor(
         id=monitor_id,
@@ -195,7 +225,9 @@ async def monitor_create(data: MonitorIn):
         expires_at=datetime.now().timestamp() + frequency,
         slug=slug,
         name=name,
+        webhook=data.webhook,
     )
+    print(monitor)
 
     return {
         "monitor_url": url_for(
@@ -204,4 +236,11 @@ async def monitor_create(data: MonitorIn):
         "report_if_not_called_in": monitor.frequency,
         "name": monitor.name,
         "api_key": monitor.api_key,
+        "webhook": {
+            "url": webhook.url,
+            "method": webhook.method,
+            "headers": webhook.headers,
+            "form_fields": webhook.form_fields,
+            "body_payload": webhook.body_payload,
+        },
     }

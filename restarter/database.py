@@ -116,3 +116,27 @@ async def insert_monitor(name, api_key, frequency, slug):
         the_id = result.fetchone().id
     await get_engine().dispose()
     return the_id
+
+
+async def insert_webhook(monitor_id, url, method, headers, form_fields, body_payload):
+    query = (
+        "INSERT INTO webhook (monitor_id, url, method, headers, "
+        "form_fields, body_payload) "
+        "VALUES (:mi, :url, :me, :he, :fo, :bo) returning id"
+    )
+    statement = text(query)
+    async with get_engine().begin() as conn:
+        result = await conn.execute(
+            statement,
+            {
+                "mi": monitor_id,
+                "url": url,
+                "me": method,
+                "he": headers,
+                "fo": form_fields,
+                "bo": body_payload,
+            },
+        )
+        the_id = result.fetchone().id
+    await get_engine().dispose()
+    return the_id
