@@ -83,3 +83,22 @@ async def test_monitor_update(test_app, min_create_payload):
     # Confirm it updated
     mon = await get_monitor_by_api_key_slug(api_key, "testslug")
     assert mon["last_check"] is not None  # because on creation it is none
+
+
+@pytest.mark.asyncio
+async def test_monitor_update_bad_api_key(test_app, min_create_payload):
+    await init_db()
+    test_client = test_app.test_client()
+    response = await test_client.post("/monitors", **min_create_payload)
+    jr = await response.json
+    api_key = jr["api_key"]
+    path = parse.urlparse(jr["monitor_url"]).path
+
+    response = await test_client.post(
+        path,
+        headers={"x-api-key": "whatevs dude"},
+    )
+    assert response.status_code == 404
+    # Confirm it did not update
+    mon = await get_monitor_by_api_key_slug(api_key, "testslug")
+    assert mon["last_check"] is None
