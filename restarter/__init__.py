@@ -74,13 +74,21 @@ async def check_things():
     app.logger.info("Checking service - jitter time %s" % jitter)
     await asyncio.sleep(jitter)
     monitors = await database.get_expired_monitors()
+    print(f"{len(monitors)} expired monitors")
+    # Only hit monitors if their last_hit is null. Meaning we hit them once only, unless
+    # hitting them fails; then we would keep retrying.
     for m in [m for m in monitors if m["url"] and m["method"]]:
         await hit_webhook(
-            m["url"], m["method"], m["headers"], m["form_fields"], m["body_payload"]
+            m["wid"],
+            m["url"],
+            m["method"],
+            m["headers"],
+            m["form_fields"],
+            m["body_payload"],
         )
 
 
-async def hit_webhook(url, method, headers, form_fields, body_payload):
+async def hit_webhook(wid, url, method, headers, form_fields, body_payload):
     if headers is None:
         headers = {}
     else:
@@ -89,18 +97,26 @@ async def hit_webhook(url, method, headers, form_fields, body_payload):
         form_fields = {}
     else:
         form_fields = json.loads(form_fields)
+    # TODO:  Use a shared-pool async client or something
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.request(
-                method,
-                url,
-                headers=headers,
-                data=form_fields,
-                content=body_payload,
-                follow_redirects=True,
-            )
-            print(resp.content)
-            resp.raise_for_status()
+            if await database.get_webhook_to_hit_by_id(wid):
+                print(f"{url} has not been hit recently")
+
+                resp = await client.request(
+                    method,
+                    url,
+                    headers=headers,
+                    data=form_fields,
+                    content=body_payload,
+                    follow_redirects=True,
+                )
+                print(resp.content)
+                resp.raise_for_status()
+                print(f"{url} hit successful, updating last_called time")
+                await database.touch_webhook_by_id(wid)
+            else:
+                print(f"{url} was hit recently, skipping for now")
         except httpx.UnsupportedProtocol:
             pass
 

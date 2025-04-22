@@ -35,6 +35,9 @@ t_webhooks = sa.Table(
     sa.Column(
         "updated_at", sa.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     ),
+    sa.Column(
+        "last_called", sa.Integer
+    ),  # timestamp of last time we called this webhook
 )
 
 sa.Index("idx_apikey_slug", t_monitors.c.api_key, t_monitors.c.slug)
@@ -58,21 +61,29 @@ async def get_monitor_by_api_key_slug(api_key, slug):
     return r
 
 
+async def get_webhook_to_hit_by_id(wh_id):
+    query = "SELECT * from webhook WHERE id=:wh_id AND last_called IS NULL"
+    statement = text(query)
+    async with get_engine().connect() as conn:
+        result = await conn.execute(statement, {"wh_id": wh_id})
+        r = result.mappings().fetchone()
+    return r
+
+
 async def get_expired_monitors():
     when = datetime.timestamp(datetime.utcnow())
     query = (
-        "SELECT monitor.id,webhook.url,webhook.method,webhook.headers, "
+        "SELECT monitor.id as mid,webhook.id as wid,webhook.url,"
+        "webhook.method,webhook.headers, "
         "webhook.form_fields, webhook.body_payload "
         "FROM monitor LEFT JOIN webhook ON  monitor.id=webhook.monitor_id "
-        "WHERE expires_at < :when "
+        "WHERE expires_at < :when"
     )
     statement = text(query)
     # statement = sa.select(t_monitors).where(t_monitors.c.expires_at < when)
     async with get_engine().connect() as conn:
         result = await conn.execute(statement, {"when": when})
-        # logger.info([{"name": r.name, "exp": r.expires_at} for r in result.fetchall()])
         expimon = result.mappings().fetchall()
-        logger.info("%s pokemon expired monitors" % len(expimon))
         # result.mappings().fetchall() returns a traditional list of dicts
 
     await get_engine().dispose()
@@ -84,23 +95,46 @@ async def update_monitor(slug, apikey):
         "UPDATE monitor SET last_check=:now, "
         "expires_at=:now_ts + frequency "
         "WHERE api_key=:apikey AND slug=:slug "
-        "RETURNING id"
+        "RETURNING monitor.id"
     )
     statement = text(query)
 
-    now_ts = datetime.now().timestamp()
+    now_ts = datetime.utcnow().timestamp()
     async with get_engine().begin() as conn:
         result = await conn.execute(
             statement,
-            {"now": datetime.now(), "apikey": apikey, "slug": slug, "now_ts": now_ts},
+            {
+                "now": datetime.utcnow(),
+                "apikey": apikey,
+                "slug": slug,
+                "now_ts": now_ts,
+            },
         )
 
         value = result.fetchone()
         if value:
+            # Reset last_called for all my webhooks
             id = value.id
+            wh_query = "UPDATE webhook SET last_called=NULL WHERE monitor_id=:id"
+            wh_statement = text(wh_query)
+            await conn.execute(wh_statement, {"id": id})
+
         else:
             id = None
+
         return id
+
+
+async def touch_webhook_by_id(wid):
+    now_ts = datetime.utcnow().timestamp()
+    query = "UPDATE webhook SET last_called=:now_ts " "WHERE id=:wid "
+    statement = text(query)
+
+    async with get_engine().begin() as conn:
+        await conn.execute(
+            statement,
+            {"now_ts": now_ts, "wid": wid},
+        )
 
 
 async def insert_monitor(name, api_key, frequency, slug):
@@ -117,7 +151,7 @@ async def insert_monitor(name, api_key, frequency, slug):
                 "ak": api_key,
                 "fr": frequency,
                 "ms": slug,
-                "ea": datetime.now().timestamp() + frequency,
+                "ea": datetime.utcnow().timestamp() + frequency,
             },
         )
         the_id = result.fetchone().id
