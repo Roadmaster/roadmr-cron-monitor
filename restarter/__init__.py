@@ -236,6 +236,20 @@ async def monitor_update(monitor_slug):
     return response
 
 
+@app.delete("/monitor/<string:monitor_slug>")
+async def monitor_delete(monitor_slug):
+    api_key = request.headers.get("x-api-key", None)
+    if not api_key:
+        return Response(status=400)
+    if not await database.delete_monitor_and_webhooks_by_slug_api_key(
+        monitor_slug, api_key
+    ):
+        return Response(status=404)
+    response = jsonify("Delete successful")
+    response.status = 200
+    return response
+
+
 def random_monitor_key():
     N = 16
     alphabet = string.ascii_uppercase + string.digits

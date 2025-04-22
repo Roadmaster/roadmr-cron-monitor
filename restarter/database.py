@@ -61,15 +61,6 @@ async def get_monitor_by_api_key_slug(api_key, slug):
     return r
 
 
-async def get_webhook_to_hit_by_id(wh_id):
-    query = "SELECT * from webhook WHERE id=:wh_id AND last_called IS NULL"
-    statement = text(query)
-    async with get_engine().connect() as conn:
-        result = await conn.execute(statement, {"wh_id": wh_id})
-        r = result.mappings().fetchone()
-    return r
-
-
 async def get_expired_monitors():
     when = datetime.timestamp(datetime.utcnow())
     query = (
@@ -125,18 +116,6 @@ async def update_monitor(slug, apikey):
         return id
 
 
-async def touch_webhook_by_id(wid):
-    now_ts = datetime.utcnow().timestamp()
-    query = "UPDATE webhook SET last_called=:now_ts " "WHERE id=:wid "
-    statement = text(query)
-
-    async with get_engine().begin() as conn:
-        await conn.execute(
-            statement,
-            {"now_ts": now_ts, "wid": wid},
-        )
-
-
 async def insert_monitor(name, api_key, frequency, slug):
     query = (
         "INSERT INTO monitor (name, api_key, frequency, slug, expires_at) "
@@ -181,3 +160,42 @@ async def insert_webhook(monitor_id, url, method, headers, form_fields, body_pay
         the_id = result.fetchone().id
     await get_engine().dispose()
     return the_id
+
+
+async def get_webhook_to_hit_by_id(wh_id):
+    query = "SELECT * from webhook WHERE id=:wh_id AND last_called IS NULL"
+    statement = text(query)
+    async with get_engine().connect() as conn:
+        result = await conn.execute(statement, {"wh_id": wh_id})
+        r = result.mappings().fetchone()
+    return r
+
+
+async def touch_webhook_by_id(wid):
+    now_ts = datetime.utcnow().timestamp()
+    query = "UPDATE webhook SET last_called=:now_ts " "WHERE id=:wid "
+    statement = text(query)
+
+    async with get_engine().begin() as conn:
+        await conn.execute(
+            statement,
+            {"now_ts": now_ts, "wid": wid},
+        )
+
+
+async def delete_monitor_and_webhooks_by_slug_api_key(slug, api_key):
+    async with get_engine().begin() as conn:
+        query = (
+            "DELETE FROM webhook WHERE monitor_id in "
+            "(SELECT id FROM monitor WHERE slug=:slug AND api_key=:api_key);"
+        )
+        statement = text(query)
+        await conn.execute(statement, {"slug": slug, "api_key": api_key})
+        query = "DELETE FROM monitor WHERE slug=:slug AND api_key=:api_key RETURNING id"
+        statement = text(query)
+        result = await conn.execute(statement, {"slug": slug, "api_key": api_key})
+        value = result.fetchone()
+        if value:
+            return value.id
+        else:
+            return None
