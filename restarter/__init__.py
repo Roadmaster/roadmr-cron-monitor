@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import random
@@ -10,15 +11,14 @@ from datetime import datetime
 
 import aiosqlite
 import apscheduler
+import httpx
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from quart import Quart, Response, current_app, g, jsonify, request, url_for
 from quart_schema import QuartSchema, RequestSchemaValidationError, validate_request
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from alembic import command
 from alembic.config import Config
-
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-
 
 from . import database
 
@@ -70,8 +70,39 @@ def logging_after(response):
 
 # non async
 async def check_things():
-    app.logger.info("Checking service")
-    await database.get_expired_monitors()
+    jitter = random.randint(2, 15)
+    app.logger.info("Checking service - jitter time %s" % jitter)
+    await asyncio.sleep(jitter)
+    monitors = await database.get_expired_monitors()
+    for m in [m for m in monitors if m["url"] and m["method"]]:
+        await hit_webhook(
+            m["url"], m["method"], m["headers"], m["form_fields"], m["body_payload"]
+        )
+
+
+async def hit_webhook(url, method, headers, form_fields, body_payload):
+    if headers is None:
+        headers = {}
+    else:
+        headers = json.loads(headers)
+    if form_fields is None:
+        form_fields = {}
+    else:
+        form_fields = json.loads(form_fields)
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.request(
+                method,
+                url,
+                headers=headers,
+                data=form_fields,
+                content=body_payload,
+                follow_redirects=True,
+            )
+            print(resp.content)
+            resp.raise_for_status()
+        except httpx.UnsupportedProtocol:
+            pass
 
 
 async def run_migrations(db_path):
