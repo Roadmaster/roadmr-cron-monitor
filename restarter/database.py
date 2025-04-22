@@ -59,17 +59,24 @@ async def get_monitor_by_api_key_slug(api_key, slug):
 
 
 async def get_expired_monitors():
-    query = "SELECT * from monitor " "WHERE expires_at < strftime('%s') "
-    statement = text(query)
     when = datetime.timestamp(datetime.utcnow())
-    statement = sa.select(t_monitors).where(t_monitors.c.expires_at < when)
+    query = (
+        "SELECT monitor.id,webhook.url,webhook.method,webhook.headers, "
+        "webhook.form_fields, webhook.body_payload "
+        "FROM monitor LEFT JOIN webhook ON  monitor.id=webhook.monitor_id "
+        "WHERE expires_at < :when "
+    )
+    statement = text(query)
+    # statement = sa.select(t_monitors).where(t_monitors.c.expires_at < when)
     async with get_engine().connect() as conn:
-        result = await conn.execute(statement)
+        result = await conn.execute(statement, {"when": when})
         # logger.info([{"name": r.name, "exp": r.expires_at} for r in result.fetchall()])
-        logger.info("%s expired monitors" % len(result.fetchall()))
+        expimon = result.mappings().fetchall()
+        logger.info("%s pokemon expired monitors" % len(expimon))
         # result.mappings().fetchall() returns a traditional list of dicts
 
     await get_engine().dispose()
+    return expimon
 
 
 async def update_monitor(slug, apikey):
