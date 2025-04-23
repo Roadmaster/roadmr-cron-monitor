@@ -181,6 +181,7 @@ class Webhook(WebhookIn):
 
 @dataclass
 class MonitorIn:
+    user_id: int
     name: str  # Descriptive name
     slug: str  # URLifiable slug
     frequency: int  # Alert if last_check + frequency > now()
@@ -201,6 +202,25 @@ class Monitor(MonitorIn):
     last_check: datetime | None
     expires_at: int  # in epoch seconds
     api_key: str
+
+
+@dataclass
+class UserIn:
+    email: str
+    password: str
+
+    def __post_init__(self):
+        if not re.fullmatch(r"[^@]+@[^@]+\.[^@]+", self.email):
+            raise ValueError("weird email")
+
+
+@dataclass
+class User(UserIn):
+    id: int
+    user_key: str
+    deleted_at: datetime
+    created_at: datetime
+    updated_at: datetime
 
 
 def run() -> None:
@@ -238,11 +258,11 @@ async def monitor_update(monitor_slug):
 
 @app.delete("/monitor/<string:monitor_slug>")
 async def monitor_delete(monitor_slug):
-    api_key = request.headers.get("x-api-key", None)
-    if not api_key:
+    admin_key = request.headers.get("x-admin-key", None)
+    if not admin_key:
         return Response(status=400)
-    if not await database.delete_monitor_and_webhooks_by_slug_api_key(
-        monitor_slug, api_key
+    if not await database.delete_monitor_and_webhooks_by_slug_admin_key(
+        monitor_slug, admin_key
     ):
         return Response(status=404)
     response = jsonify("Delete successful")
@@ -250,10 +270,13 @@ async def monitor_delete(monitor_slug):
     return response
 
 
-def random_monitor_key():
-    N = 16
+def random_monitor_key(key_length=16):
     alphabet = string.ascii_uppercase + string.digits
-    return "".join(random.SystemRandom().choice(alphabet) for _ in range(N))
+    return "".join(random.SystemRandom().choice(alphabet) for _ in range(key_length))
+
+
+def passwordify(pwd):
+    return pwd
 
 
 @app.post("/monitors")
@@ -304,3 +327,19 @@ async def monitor_create(data: MonitorIn):
             "body_payload": webhook.body_payload,
         },
     }
+
+
+@app.post("/users")
+@validate_request(UserIn)
+async def user_create(data: UserIn):
+    admin_key = request.headers.get("x-admin-key", None)
+    if admin_key != current_app.config["ADMIN_KEY"]:
+        return Response(status=401)
+    email = data.email
+    password = passwordify(data.password)
+    new_user_key = random_monitor_key(key_length=32)
+    user = await database.insert_user(
+        email=email, password_crypted=password, user_key=new_user_key
+    )
+    u = User(**user)  # Create user record directo from the database
+    return u

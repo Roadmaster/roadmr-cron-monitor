@@ -9,10 +9,24 @@ logger = logging.getLogger(__name__)
 
 meta = sa.MetaData()
 
+t_users = sa.Table(
+    "user",
+    meta,
+    sa.Column("id", sa.Integer, primary_key=True),
+    sa.Column("email", sa.Text, nullable=False),
+    sa.Column("password", sa.Text, nullable=False),
+    sa.Column("user_key", sa.Text, nullable=False),
+    sa.Column("deleted_at", sa.DateTime),
+    sa.Column("created_at", sa.DateTime, default=datetime.utcnow),
+    sa.Column(
+        "updated_at", sa.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    ),
+)
 t_monitors = sa.Table(
     "monitor",
     meta,
     sa.Column("id", sa.Integer, primary_key=True),
+    sa.Column("user_id", sa.Integer, sa.ForeignKey("user.id"), nullable=False),
     sa.Column("name", sa.Text, nullable=False),
     sa.Column("slug", sa.Text, nullable=False),
     sa.Column("frequency", sa.Integer, nullable=False),
@@ -116,16 +130,17 @@ async def update_monitor(slug, apikey):
         return id
 
 
-async def insert_monitor(name, api_key, frequency, slug):
+async def insert_monitor(user_id, name, api_key, frequency, slug):
     query = (
-        "INSERT INTO monitor (name, api_key, frequency, slug, expires_at) "
-        "VALUES (:na, :ak, :fr, :ms, :ea) returning id"
+        "INSERT INTO monitor (user_id, name, api_key, frequency, slug, expires_at) "
+        "VALUES (:ui, :na, :ak, :fr, :ms, :ea) returning id"
     )
     statement = text(query)
     async with get_engine().begin() as conn:
         result = await conn.execute(
             statement,
             {
+                "ui": user_id,
                 "na": name,
                 "ak": api_key,
                 "fr": frequency,
@@ -183,19 +198,37 @@ async def touch_webhook_by_id(wid):
         )
 
 
-async def delete_monitor_and_webhooks_by_slug_api_key(slug, api_key):
+async def delete_monitor_and_webhooks_by_slug_user_key(slug, user_key):
     async with get_engine().begin() as conn:
         query = (
             "DELETE FROM webhook WHERE monitor_id in "
-            "(SELECT id FROM monitor WHERE slug=:slug AND api_key=:api_key);"
+            "(SELECT id FROM monitor WHERE slug=:slug AND user_key=:user_key);"
         )
         statement = text(query)
-        await conn.execute(statement, {"slug": slug, "api_key": api_key})
-        query = "DELETE FROM monitor WHERE slug=:slug AND api_key=:api_key RETURNING id"
+        await conn.execute(statement, {"slug": slug, "user_key": user_key})
+        query = (
+            "DELETE FROM monitor WHERE slug=:slug AND user_key=:user_key RETURNING id"
+        )
         statement = text(query)
-        result = await conn.execute(statement, {"slug": slug, "api_key": api_key})
+        result = await conn.execute(statement, {"slug": slug, "user_key": user_key})
         value = result.fetchone()
         if value:
             return value.id
         else:
             return None
+
+
+async def insert_user(email, password_crypted, user_key):
+    query = (
+        "INSERT INTO user (email, password, user_key) "
+        "VALUES (:em, :pw, :uk) returning *"
+    )
+    statement = text(query)
+    async with get_engine().begin() as conn:
+        result = await conn.execute(
+            statement,
+            {"em": email, "pw": password_crypted, "uk": user_key},
+        )
+        the_user = result.mappings().fetchone()
+    await get_engine().dispose()
+    return the_user
