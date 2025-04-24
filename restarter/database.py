@@ -3,6 +3,7 @@ from datetime import datetime, UTC
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import text
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ t_users = sa.Table(
     "user",
     meta,
     sa.Column("id", sa.Integer, primary_key=True),
-    sa.Column("email", sa.Text, nullable=False),
+    sa.Column("email", sa.Text, nullable=False, unique=True),
     sa.Column("password", sa.Text, nullable=False),
     sa.Column("user_key", sa.Text, nullable=False),
     sa.Column("deleted_at", sa.DateTime),
@@ -239,10 +240,14 @@ async def insert_user(email, password_crypted, user_key):
     )
     statement = text(query)
     async with get_engine().begin() as conn:
-        result = await conn.execute(
-            statement,
-            {"em": email, "pw": password_crypted, "uk": user_key},
-        )
+        try:
+            result = await conn.execute(
+                statement,
+                {"em": email, "pw": password_crypted, "uk": user_key},
+            )
+        except IntegrityError:
+            return None
+
         the_user = result.mappings().fetchone()
     await get_engine().dispose()
     return the_user

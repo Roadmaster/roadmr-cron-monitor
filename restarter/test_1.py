@@ -1,6 +1,7 @@
 from urllib import parse
 
 import pytest
+import random
 
 from . import app, init_db
 from .database import get_monitor_by_api_key_slug, get_user_by_user_key
@@ -31,7 +32,9 @@ def min_user_create_payload(test_app):
     return dict(
         headers={"x-admin-key": test_app.config["ADMIN_KEY"]},
         json={
-            "email": "foo@bar.com",
+            # FIXME: This makes tests nondeterministic, fix this to instead
+            # clean up the database after each test
+            "email": "foo@bar.com" + str(random.randint(10, 100)),
             "password": "correct-hiorse-battery-stable",
         },
     )
@@ -52,7 +55,7 @@ async def test_user_create(test_app, min_user_create_payload):
     assert response.status_code == 200
     jr = await response.json
 
-    assert jr["email"] == "foo@bar.com"
+    assert jr["email"] == min_user_create_payload["json"]["email"]
     assert "argon" in jr["password"]
     assert "user_key" in jr
 
@@ -62,10 +65,19 @@ async def test_user_create(test_app, min_user_create_payload):
 
 
 @pytest.mark.asyncio
+async def test_user_create_dupe_email(test_app, min_user_create_payload):
+    await init_db()
+    test_client = test_app.test_client()
+    await test_client.post("/users", **min_user_create_payload)
+    response = await test_client.post("/users", **min_user_create_payload)
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
 async def test_monitor_create(test_app, min_create_payload, min_user_create_payload):
     await init_db()
     test_client = test_app.test_client()
-    # Create the user. This should be a fixture.
+    # FIXME: Create the user. This should be a fixture.
     response = await test_client.post("/users", **min_user_create_payload)
     jr = await response.json
 
