@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -9,6 +9,11 @@ logger = logging.getLogger(__name__)
 
 meta = sa.MetaData()
 
+
+def utcnow():
+    return datetime.now(UTC)
+
+
 t_users = sa.Table(
     "user",
     meta,
@@ -17,7 +22,7 @@ t_users = sa.Table(
     sa.Column("password", sa.Text, nullable=False),
     sa.Column("user_key", sa.Text, nullable=False),
     sa.Column("deleted_at", sa.DateTime),
-    sa.Column("created_at", sa.DateTime, default=datetime.utcnow),
+    sa.Column("created_at", sa.DateTime, default=datetime.now),
     sa.Column(
         "updated_at", sa.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     ),
@@ -75,8 +80,17 @@ async def get_monitor_by_api_key_slug(api_key, slug):
     return r
 
 
+async def get_user_by_user_key(user_key):
+    query = "SELECT * from user WHERE user_key=:uk"
+    statement = text(query)
+    async with get_engine().connect() as conn:
+        result = await conn.execute(statement, {"uk": user_key})
+        r = result.mappings().fetchone()
+    return r
+
+
 async def get_expired_monitors():
-    when = datetime.timestamp(datetime.utcnow())
+    when = datetime.timestamp(datetime.now(UTC))
     query = (
         "SELECT monitor.id as mid,webhook.id as wid,webhook.url,"
         "webhook.method,webhook.headers, "
@@ -104,12 +118,12 @@ async def update_monitor(slug, apikey):
     )
     statement = text(query)
 
-    now_ts = datetime.utcnow().timestamp()
+    now_ts = datetime.now(UTC).timestamp()
     async with get_engine().begin() as conn:
         result = await conn.execute(
             statement,
             {
-                "now": datetime.utcnow(),
+                "now": datetime.now(UTC),
                 "apikey": apikey,
                 "slug": slug,
                 "now_ts": now_ts,
@@ -145,7 +159,7 @@ async def insert_monitor(user_id, name, api_key, frequency, slug):
                 "ak": api_key,
                 "fr": frequency,
                 "ms": slug,
-                "ea": datetime.utcnow().timestamp() + frequency,
+                "ea": datetime.now(UTC).timestamp() + frequency,
             },
         )
         the_id = result.fetchone().id
@@ -187,7 +201,7 @@ async def get_webhook_to_hit_by_id(wh_id):
 
 
 async def touch_webhook_by_id(wid):
-    now_ts = datetime.utcnow().timestamp()
+    now_ts = datetime.now(UTC).timestamp()
     query = "UPDATE webhook SET last_called=:now_ts " "WHERE id=:wid "
     statement = text(query)
 

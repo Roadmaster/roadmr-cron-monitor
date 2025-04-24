@@ -14,7 +14,12 @@ import apscheduler
 import httpx
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from quart import Quart, Response, current_app, g, jsonify, request, url_for
-from quart_schema import QuartSchema, RequestSchemaValidationError, validate_request
+from quart_schema import (
+    QuartSchema,
+    RequestSchemaValidationError,
+    validate_request,
+    validate_headers,
+)
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from alembic import command
@@ -146,9 +151,6 @@ async def before_serving():
         scheduler.start()
     except apscheduler.schedulers.SchedulerAlreadyRunningError:
         pass
-    print("SQLA TEST")
-
-    await database.get_expired_monitors()
     app.logger.info("Setup complete, serving")
     if os.environ.get("PRINT_LOGGING_TREE"):
         try:
@@ -181,7 +183,6 @@ class Webhook(WebhookIn):
 
 @dataclass
 class MonitorIn:
-    user_id: int
     name: str  # Descriptive name
     slug: str  # URLifiable slug
     frequency: int  # Alert if last_check + frequency > now()
@@ -199,6 +200,7 @@ class MonitorIn:
 @dataclass
 class Monitor(MonitorIn):
     id: int
+    user_id: int
     last_check: datetime | None
     expires_at: int  # in epoch seconds
     api_key: str
@@ -276,22 +278,36 @@ def random_monitor_key(key_length=16):
 
 
 def passwordify(pwd):
-    return pwd
+    from argon2 import PasswordHasher
+
+    ph = PasswordHasher(memory_cost=16384)
+
+    return ph.hash(pwd)
+
+
+@dataclass
+class Headers:
+    x_user_key: str
 
 
 @app.post("/monitors")
+@validate_headers(Headers)
 @validate_request(MonitorIn)
-async def monitor_create(data: MonitorIn):
-    admin_key = request.headers.get("x-admin-key", None)
-    if admin_key != current_app.config["ADMIN_KEY"]:
+async def monitor_create(data: MonitorIn, headers: Headers):
+    user_key = headers.x_user_key
+    user = await database.get_user_by_user_key(user_key)
+    if not user:
         return Response(status=401)
+    user_id = user["id"]
     name = data.name
     new_api_key = random_monitor_key()
     frequency = data.frequency
     slug = data.slug
     webhook = data.webhook
-    monitor_id = await database.insert_monitor(name, new_api_key, frequency, slug)
-    webhook_id = await database.insert_webhook(
+    monitor_id = await database.insert_monitor(
+        user_id, name, new_api_key, frequency, slug
+    )
+    await database.insert_webhook(
         monitor_id,
         webhook.url,
         webhook.method,
@@ -301,6 +317,7 @@ async def monitor_create(data: MonitorIn):
     )
 
     monitor = Monitor(
+        user_id=user_id,
         id=monitor_id,
         api_key=new_api_key,
         frequency=frequency,

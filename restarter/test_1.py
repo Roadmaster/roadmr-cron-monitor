@@ -3,7 +3,7 @@ from urllib import parse
 import pytest
 
 from . import app, init_db
-from .database import get_monitor_by_api_key_slug
+from .database import get_monitor_by_api_key_slug, get_user_by_user_key
 
 
 @pytest.fixture(name="test_app")
@@ -16,12 +16,23 @@ def _test_app(tmpdir):
 @pytest.fixture
 def min_create_payload(test_app):
     return dict(
-        headers={"x-admin-key": test_app.config["ADMIN_KEY"]},
+        headers={},
         json={
             "frequency": 60,
             "name": "testmon",
             "slug": "testslug",
             "webhook": {"url": "https://foo2.com", "method": "post"},
+        },
+    )
+
+
+@pytest.fixture
+def min_user_create_payload(test_app):
+    return dict(
+        headers={"x-admin-key": test_app.config["ADMIN_KEY"]},
+        json={
+            "email": "foo@bar.com",
+            "password": "correct-hiorse-battery-stable",
         },
     )
 
@@ -34,13 +45,36 @@ async def test_app(test_app):
 
 
 @pytest.mark.asyncio
-async def test_monitor_create(test_app, min_create_payload):
+async def test_user_create(test_app, min_user_create_payload):
     await init_db()
     test_client = test_app.test_client()
+    response = await test_client.post("/users", **min_user_create_payload)
+    assert response.status_code == 200
+    jr = await response.json
+
+    assert jr["email"] == "foo@bar.com"
+    assert "argon" in jr["password"]
+    assert "user_key" in jr
+
+    mon = await get_user_by_user_key(jr["user_key"])
+
+    assert mon is not None
+
+
+@pytest.mark.asyncio
+async def test_monitor_create(test_app, min_create_payload, min_user_create_payload):
+    await init_db()
+    test_client = test_app.test_client()
+    # Create the user. This should be a fixture.
+    response = await test_client.post("/users", **min_user_create_payload)
+    jr = await response.json
+
+    user_key = jr["user_key"]
+    # Create the monitor.
+    min_create_payload["headers"]["x-user-key"] = user_key
     response = await test_client.post("/monitors", **min_create_payload)
     assert response.status_code == 200
     jr = await response.json
-    print(jr)
     assert parse.urlparse(jr["monitor_url"]).path == "/monitor/testslug"
     assert jr["name"] == "testmon"
     assert jr["report_if_not_called_in"] == 60
@@ -52,21 +86,36 @@ async def test_monitor_create(test_app, min_create_payload):
 
 
 @pytest.mark.asyncio
-async def test_monitor_create_bogus(test_app, min_create_payload):
+async def test_monitor_create_bogus(
+    test_app, min_create_payload, min_user_create_payload
+):
     await init_db()
     test_client = test_app.test_client()
+    # Create the user. This should be a fixture.
+    response = await test_client.post("/users", **min_user_create_payload)
+    jr = await response.json
+
+    user_key = jr["user_key"]
+    # Create the monitor.
+    min_create_payload["headers"]["x-user-key"] = user_key
     min_create_payload["json"]["webhook"] = {}
     response = await test_client.post("/monitors", **min_create_payload)
     assert response.status_code == 400
     jr = await response.json
-    print(jr)
     assert "errors" in jr
 
 
 @pytest.mark.asyncio
-async def test_monitor_update(test_app, min_create_payload):
+async def test_monitor_update(test_app, min_create_payload, min_user_create_payload):
     await init_db()
     test_client = test_app.test_client()
+    # Create the user. This should be a fixture.
+    response = await test_client.post("/users", **min_user_create_payload)
+    jr = await response.json
+
+    user_key = jr["user_key"]
+    # Create the monitor.
+    min_create_payload["headers"]["x-user-key"] = user_key
     response = await test_client.post("/monitors", **min_create_payload)
     jr = await response.json
     api_key = jr["api_key"]
@@ -86,9 +135,18 @@ async def test_monitor_update(test_app, min_create_payload):
 
 
 @pytest.mark.asyncio
-async def test_monitor_update_bad_api_key(test_app, min_create_payload):
+async def test_monitor_update_bad_user_key(
+    test_app, min_create_payload, min_user_create_payload
+):
     await init_db()
     test_client = test_app.test_client()
+    # Create the user. This should be a fixture.
+    response = await test_client.post("/users", **min_user_create_payload)
+    jr = await response.json
+
+    user_key = jr["user_key"]
+    # Create the monitor.
+    min_create_payload["headers"]["x-user-key"] = user_key
     response = await test_client.post("/monitors", **min_create_payload)
     jr = await response.json
     api_key = jr["api_key"]
