@@ -46,8 +46,6 @@ def min_user_create_payload(test_app):
     return dict(
         headers={"x-admin-key": test_app.config["ADMIN_KEY"]},
         json={
-            # FIXME: This makes tests nondeterministic, fix this to instead
-            # clean up the database after each test
             "email": "foo@bar.com",
             "password": "correct-hiorse-battery-stable",
         },
