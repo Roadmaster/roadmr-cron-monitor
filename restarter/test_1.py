@@ -52,6 +52,16 @@ def min_user_create_payload(test_app):
     )
 
 
+@pytest.fixture(autouse=True)
+def test_user_key():
+    return "A" * 32
+
+
+@pytest_asyncio.fixture
+async def sample_user(db, test_user_key):
+    await database.insert_user("foo@bar.com", "correct-hoarse", test_user_key)
+
+
 @pytest.mark.asyncio
 async def test_app(test_app):
     client = app.test_client()
@@ -61,7 +71,6 @@ async def test_app(test_app):
 
 @pytest.mark.asyncio
 async def test_user_create(test_app, min_user_create_payload):
-    # await init_db()
     test_client = test_app.test_client()
     response = await test_client.post("/users", **min_user_create_payload)
     assert response.status_code == 200
@@ -85,15 +94,10 @@ async def test_user_create_dupe_email(test_app, min_user_create_payload):
 
 
 @pytest.mark.asyncio
-async def test_monitor_create(test_app, min_create_payload, min_user_create_payload):
+async def test_monitor_create(test_app, min_create_payload, sample_user, test_user_key):
     test_client = test_app.test_client()
-    # FIXME: Create the user. This should be a fixture.
-    response = await test_client.post("/users", **min_user_create_payload)
-    jr = await response.json
-
-    user_key = jr["user_key"]
     # Create the monitor.
-    min_create_payload["headers"]["x-user-key"] = user_key
+    min_create_payload["headers"]["x-user-key"] = test_user_key
     response = await test_client.post("/monitors", **min_create_payload)
     assert response.status_code == 200
     jr = await response.json
@@ -108,17 +112,10 @@ async def test_monitor_create(test_app, min_create_payload, min_user_create_payl
 
 
 @pytest.mark.asyncio
-async def test_monitor_create_bogus(
-    test_app, min_create_payload, min_user_create_payload
-):
+async def test_monitor_create_bogus(test_app, min_create_payload, test_user_key):
     test_client = test_app.test_client()
-    # Create the user. This should be a fixture.
-    response = await test_client.post("/users", **min_user_create_payload)
-    jr = await response.json
-
-    user_key = jr["user_key"]
     # Create the monitor.
-    min_create_payload["headers"]["x-user-key"] = user_key
+    min_create_payload["headers"]["x-user-key"] = test_user_key
     min_create_payload["json"]["webhook"] = {}
     response = await test_client.post("/monitors", **min_create_payload)
     assert response.status_code == 400
@@ -127,16 +124,12 @@ async def test_monitor_create_bogus(
 
 
 @pytest.mark.asyncio
-async def test_monitor_update(test_app, min_create_payload, min_user_create_payload):
+async def test_monitor_update(test_app, min_create_payload, sample_user, test_user_key):
     test_client = test_app.test_client()
-    # Create the user. This should be a fixture.
-    response = await test_client.post("/users", **min_user_create_payload)
-    jr = await response.json
-
-    user_key = jr["user_key"]
     # Create the monitor.
-    min_create_payload["headers"]["x-user-key"] = user_key
+    min_create_payload["headers"]["x-user-key"] = test_user_key
     response = await test_client.post("/monitors", **min_create_payload)
+    assert response.status_code == 200
     jr = await response.json
     api_key = jr["api_key"]
     path = parse.urlparse(jr["monitor_url"]).path
@@ -156,17 +149,13 @@ async def test_monitor_update(test_app, min_create_payload, min_user_create_payl
 
 @pytest.mark.asyncio
 async def test_monitor_update_bad_user_key(
-    test_app, min_create_payload, min_user_create_payload
+    test_app, min_create_payload, sample_user, test_user_key
 ):
     test_client = test_app.test_client()
-    # Create the user. This should be a fixture.
-    response = await test_client.post("/users", **min_user_create_payload)
-    jr = await response.json
-
-    user_key = jr["user_key"]
     # Create the monitor.
-    min_create_payload["headers"]["x-user-key"] = user_key
+    min_create_payload["headers"]["x-user-key"] = test_user_key
     response = await test_client.post("/monitors", **min_create_payload)
+    assert response.status_code == 200
     jr = await response.json
     api_key = jr["api_key"]
     path = parse.urlparse(jr["monitor_url"]).path
