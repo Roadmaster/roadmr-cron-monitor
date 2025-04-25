@@ -112,6 +112,19 @@ async def test_monitor_create(test_app, min_create_payload, sample_user, test_us
 
 
 @pytest.mark.asyncio
+async def test_monitor_create_dupe_slug(
+    test_app, min_create_payload, sample_user, test_user_key
+):
+    test_client = test_app.test_client()
+    # Create the monitor.
+    min_create_payload["headers"]["x-user-key"] = test_user_key
+    response = await test_client.post("/monitors", **min_create_payload)
+    response = await test_client.post("/monitors", **min_create_payload)
+    assert response.status_code == 400
+    assert "Monitor with this slug already exists" in (await response.json)["error"]
+
+
+@pytest.mark.asyncio
 async def test_monitor_create_bogus(test_app, min_create_payload, test_user_key):
     test_client = test_app.test_client()
     # Create the monitor.

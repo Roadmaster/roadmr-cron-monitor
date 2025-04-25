@@ -307,6 +307,8 @@ async def monitor_create(data: MonitorIn, headers: Headers):
     monitor_id = await database.insert_monitor(
         user_id, name, new_api_key, frequency, slug
     )
+    if not monitor_id:
+        return ({"error": "Monitor with this slug already exists"}, 400)
     await database.insert_webhook(
         monitor_id,
         webhook.url,

@@ -34,7 +34,7 @@ t_monitors = sa.Table(
     sa.Column("id", sa.Integer, primary_key=True),
     sa.Column("user_id", sa.Integer, sa.ForeignKey("user.id"), nullable=False),
     sa.Column("name", sa.Text, nullable=False),
-    sa.Column("slug", sa.Text, nullable=False),
+    sa.Column("slug", sa.Text, nullable=False, unique=True),
     sa.Column("frequency", sa.Integer, nullable=False),
     sa.Column("expires_at", sa.Integer, nullable=False),
     sa.Column("api_key", sa.Text, nullable=False),
@@ -152,17 +152,20 @@ async def insert_monitor(user_id, name, api_key, frequency, slug):
     )
     statement = text(query)
     async with get_engine().begin() as conn:
-        result = await conn.execute(
-            statement,
-            {
-                "ui": user_id,
-                "na": name,
-                "ak": api_key,
-                "fr": frequency,
-                "ms": slug,
-                "ea": datetime.now(UTC).timestamp() + frequency,
-            },
-        )
+        try:
+            result = await conn.execute(
+                statement,
+                {
+                    "ui": user_id,
+                    "na": name,
+                    "ak": api_key,
+                    "fr": frequency,
+                    "ms": slug,
+                    "ea": datetime.now(UTC).timestamp() + frequency,
+                },
+            )
+        except IntegrityError:
+            return None
         the_id = result.fetchone().id
     await get_engine().dispose()
     return the_id
