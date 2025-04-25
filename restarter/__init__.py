@@ -359,6 +359,6 @@ async def user_create(data: UserIn):
         email=email, password_crypted=password, user_key=new_user_key
     )
     if not user:
-        return Response({"error": "Email already used"}, status=400)
+        return ({"error": "Email already used"}, 400)
     u = User(**user)  # Create user record directo from the database
     return u

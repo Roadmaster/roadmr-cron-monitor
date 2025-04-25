@@ -1,9 +1,9 @@
 from urllib import parse
 
 import pytest
-import random
+import pytest_asyncio
 
-from . import app, init_db
+from . import app, database
 from .database import get_monitor_by_api_key_slug, get_user_by_user_key
 
 
@@ -12,6 +12,20 @@ def _test_app(tmpdir):
     app.config["DATABASE"] = "test.db"
     app.config["ADMIN_KEY"] = "somethingbogus"
     return app
+
+
+# Available to all tests, wraps each test execution, create/teardown the db
+@pytest_asyncio.fixture(autouse=True)
+async def db(test_app):
+
+    eng = database.get_engine()
+    async with eng.begin() as conn:
+        await conn.run_sync(database.meta.create_all)
+
+    yield db
+
+    async with eng.begin() as conn:
+        await conn.run_sync(database.meta.drop_all)
 
 
 @pytest.fixture
@@ -34,7 +48,7 @@ def min_user_create_payload(test_app):
         json={
             # FIXME: This makes tests nondeterministic, fix this to instead
             # clean up the database after each test
-            "email": "foo@bar.com" + str(random.randint(10, 100)),
+            "email": "foo@bar.com",
             "password": "correct-hiorse-battery-stable",
         },
     )
@@ -49,7 +63,7 @@ async def test_app(test_app):
 
 @pytest.mark.asyncio
 async def test_user_create(test_app, min_user_create_payload):
-    await init_db()
+    # await init_db()
     test_client = test_app.test_client()
     response = await test_client.post("/users", **min_user_create_payload)
     assert response.status_code == 200
@@ -66,7 +80,6 @@ async def test_user_create(test_app, min_user_create_payload):
 
 @pytest.mark.asyncio
 async def test_user_create_dupe_email(test_app, min_user_create_payload):
-    await init_db()
     test_client = test_app.test_client()
     await test_client.post("/users", **min_user_create_payload)
     response = await test_client.post("/users", **min_user_create_payload)
@@ -75,7 +88,6 @@ async def test_user_create_dupe_email(test_app, min_user_create_payload):
 
 @pytest.mark.asyncio
 async def test_monitor_create(test_app, min_create_payload, min_user_create_payload):
-    await init_db()
     test_client = test_app.test_client()
     # FIXME: Create the user. This should be a fixture.
     response = await test_client.post("/users", **min_user_create_payload)
@@ -101,7 +113,6 @@ async def test_monitor_create(test_app, min_create_payload, min_user_create_payl
 async def test_monitor_create_bogus(
     test_app, min_create_payload, min_user_create_payload
 ):
-    await init_db()
     test_client = test_app.test_client()
     # Create the user. This should be a fixture.
     response = await test_client.post("/users", **min_user_create_payload)
@@ -119,7 +130,6 @@ async def test_monitor_create_bogus(
 
 @pytest.mark.asyncio
 async def test_monitor_update(test_app, min_create_payload, min_user_create_payload):
-    await init_db()
     test_client = test_app.test_client()
     # Create the user. This should be a fixture.
     response = await test_client.post("/users", **min_user_create_payload)
@@ -150,7 +160,6 @@ async def test_monitor_update(test_app, min_create_payload, min_user_create_payl
 async def test_monitor_update_bad_user_key(
     test_app, min_create_payload, min_user_create_payload
 ):
-    await init_db()
     test_client = test_app.test_client()
     # Create the user. This should be a fixture.
     response = await test_client.post("/users", **min_user_create_payload)
