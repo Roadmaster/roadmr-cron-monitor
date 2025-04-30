@@ -230,6 +230,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "quart" },
     { name = "quart-schema", extra = ["pydantic"] },
+    { name = "quart-wtforms" },
     { name = "uvicorn" },
 ]
 
@@ -253,6 +254,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "quart", specifier = ">=0.20.0" },
     { name = "quart-schema", extras = ["pydantic"], specifier = ">=0.21.0" },
+    { name = "quart-wtforms", specifier = ">=1.0.3" },
     { name = "uvicorn", specifier = ">=0.34.0" },
 ]
 
@@ -710,6 +712,34 @@ pydantic = [
 ]
 
 [[package]]
+name = "quart-uploads"
+version = "0.0.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiofiles" },
+    { name = "quart" },
+    { name = "types-aiofiles" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ed/31/f2e53ac5a7d12466131224a95971576af4f93b409af6a5c169e8aa87de7b/quart_uploads-0.0.4.tar.gz", hash = "sha256:fc19a99b45feada44e750c3b4b9ff323800451e5550e4b66b3003e688011d3fb", size = 9413 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/68/46/82696fd967415765cd73bcdee76894455347b08e9c188284b5bcfd0f3868/quart_uploads-0.0.4-py3-none-any.whl", hash = "sha256:67f7f53b975afb12c0630cebd6acde234c797fca98dd769a9088225aaacdd14a", size = 10971 },
+]
+
+[[package]]
+name = "quart-wtforms"
+version = "1.0.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "quart" },
+    { name = "quart-uploads" },
+    { name = "wtforms" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/dd/37/b563f8cc5e23438b468ee3af68ce02659d1b07704a51fd366005de4c7e59/quart_wtforms-1.0.3.tar.gz", hash = "sha256:9fa4b0203370d6f7294c387fae9e1f096bc1e77003f1207445ca5e1e01e80eb7", size = 10149 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ef/e3/d5f5c3e24dcf2314e9b5f2049bd07b272d1087a93a8ba324f10fbeb012fc/quart_wtforms-1.0.3-py3-none-any.whl", hash = "sha256:7d08214c9606d40d2b35c78a8c1eecc2913b03b09cd256d233c82c29c8526fab", size = 12399 },
+]
+
+[[package]]
 name = "ruff"
 version = "0.11.4"
 source = { registry = "https://pypi.org/simple" }
@@ -770,6 +800,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/33/ac/e5e0a807163652a35be878c0ad5cfd8b1d29605edcadfb5df3c512cdf9f3/sqlalchemy-2.0.40-cp313-cp313-win32.whl", hash = "sha256:a669cbe5be3c63f75bcbee0b266779706f1a54bcb1000f302685b87d1b8c1500", size = 2080704 },
     { url = "https://files.pythonhosted.org/packages/1c/cb/f38c61f7f2fd4d10494c1c135ff6a6ddb63508d0b47bccccd93670637309/sqlalchemy-2.0.40-cp313-cp313-win_amd64.whl", hash = "sha256:641ee2e0834812d657862f3a7de95e0048bdcb6c55496f39c6fa3d435f6ac6ad", size = 2104564 },
     { url = "https://files.pythonhosted.org/packages/d1/7c/5fc8e802e7506fe8b55a03a2e1dab156eae205c91bee46305755e086d2e2/sqlalchemy-2.0.40-py3-none-any.whl", hash = "sha256:32587e2e1e359276957e6fe5dad089758bc042a971a8a09ae8ecf7a8fe23d07a", size = 1903894 },
+]
+
+[[package]]
+name = "types-aiofiles"
+version = "24.1.0.20250326"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8d/25/c76a9ee91eefac376ed8905b029272e27c44739e3f148faf5c00afe71e43/types_aiofiles-24.1.0.20250326.tar.gz", hash = "sha256:c4bbe432fd043911ba83fb635456f5cc54f6d05fda2aadf6bef12a84f07a6efe", size = 14369 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0e/18/1016ffd4c7775f24371f6a0309483dc5597e8245b5add67924e54ea3b83a/types_aiofiles-24.1.0.20250326-py3-none-any.whl", hash = "sha256:dfb58c9aa18bd449e80fb5d7f49dc3dd20d31de920a46223a61798ee4a521a70", size = 14344 },
 ]
 
 [[package]]
@@ -849,4 +888,16 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c9/4a/44d3c295350d776427904d73c189e10aeae66d7f555bb2feee16d1e4ba5a/wsproto-1.2.0.tar.gz", hash = "sha256:ad565f26ecb92588a3e43bc3d96164de84cd9902482b130d0ddbaa9664a85065", size = 53425 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/78/58/e860788190eba3bcce367f74d29c4675466ce8dddfba85f7827588416f01/wsproto-1.2.0-py3-none-any.whl", hash = "sha256:b9acddd652b585d75b20477888c56642fdade28bdfd3579aa24a4d2c037dd736", size = 24226 },
+]
+
+[[package]]
+name = "wtforms"
+version = "3.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markupsafe" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/01/e4/633d080897e769ed5712dcfad626e55dbd6cf45db0ff4d9884315c6a82da/wtforms-3.2.1.tar.gz", hash = "sha256:df3e6b70f3192e92623128123ec8dca3067df9cfadd43d59681e210cfb8d4682", size = 137801 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/c9/2088fb5645cd289c99ebe0d4cdcc723922a1d8e1beaefb0f6f76dff9b21c/wtforms-3.2.1-py3-none-any.whl", hash = "sha256:583bad77ba1dd7286463f21e11aa3043ca4869d03575921d1a1698d0715e0fd4", size = 152454 },
 ]
