@@ -13,7 +13,17 @@ import aiosqlite
 import apscheduler
 import httpx
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from quart import Quart, Response, current_app, g, jsonify, request, url_for
+from quart import (
+    Quart,
+    Response,
+    current_app,
+    g,
+    jsonify,
+    request,
+    url_for,
+    redirect,
+    render_template,
+)
 from quart_schema import (
     QuartSchema,
     RequestSchemaValidationError,
@@ -24,6 +34,11 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from alembic import command
 from alembic.config import Config
+
+from quart_wtf import QuartForm
+from wtforms import StringField, PasswordField
+from wtforms.validators import DataRequired, Email, EqualTo
+from wtforms.widgets import PasswordInput
 
 from . import database
 
@@ -71,6 +86,28 @@ def logging_after(response):
         "%s ms %s %s %s", time_in_ms, request.method, request.path, dict(request.args)
     )
     return response
+
+
+class CreateAccountForm(QuartForm):
+    email = StringField(
+        "Email address",
+        validators=[DataRequired("Please enter your email address"), Email()],
+    )
+
+    password = PasswordField(
+        "Password",
+        widget=PasswordInput(hide_value=False),
+        validators=[
+            DataRequired("Please enter your password"),
+            EqualTo("password_confirm", message="Passwords must match"),
+        ],
+    )
+
+    password_confirm = PasswordField(
+        "Confirm Password",
+        widget=PasswordInput(hide_value=False),
+        validators=[DataRequired("Please confirm your password")],
+    )
 
 
 # non async
@@ -239,6 +276,14 @@ async def handle_request_validation_error(error):
 @app.get("/")
 async def root():
     return "Hi there, I'm the flyrestarter"
+
+
+@app.route("/register", methods=["GET", "POST"])
+async def register():
+    form = await CreateAccountForm.create_form(request.form)
+    if await form.validate_on_submit():
+        return redirect("/")
+    return await render_template("register.html", form=form)
 
 
 @app.get("/health")
