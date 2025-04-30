@@ -9,7 +9,7 @@ primary_region = 'atl'
 [build]
 
 [env]
-FLYRESTARTER_DATABASE="/data/restarter-alembic-managed.db"
+FLYRESTARTER_DATABASE="/data/restarter-alembic-managed-2.db"
 PYTHONUNBUFFERED=1
 
 [http_service]
