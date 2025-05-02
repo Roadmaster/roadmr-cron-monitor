@@ -23,6 +23,8 @@ from quart import (
     url_for,
     redirect,
     render_template,
+    flash,
+    session,
 )
 from quart_schema import (
     QuartSchema,
@@ -86,6 +88,21 @@ def logging_after(response):
         "%s ms %s %s %s", time_in_ms, request.method, request.path, dict(request.args)
     )
     return response
+
+
+class LoginForm(QuartForm):
+    email = StringField(
+        "Email address",
+        validators=[DataRequired("Please enter your email address"), Email()],
+    )
+
+    password = PasswordField(
+        "Password",
+        widget=PasswordInput(hide_value=False),
+        validators=[
+            DataRequired("Please enter your password"),
+        ],
+    )
 
 
 class CreateAccountForm(QuartForm):
@@ -275,15 +292,67 @@ async def handle_request_validation_error(error):
 
 @app.get("/")
 async def root():
-    return "Hi there, I'm the flyrestarter"
+    return await render_template("index.html")
 
 
 @app.route("/register", methods=["GET", "POST"])
 async def register():
-    form = await CreateAccountForm.create_form(request.form)
+    form = await CreateAccountForm.create_form()
     if await form.validate_on_submit():
-        return redirect("/")
+        email = form.email.data
+        password = passwordify(form.password.data)
+        new_user_key = random_monitor_key(key_length=32)
+        user = await database.insert_user(
+            email=email, password_crypted=password, user_key=new_user_key
+        )
+        if user:
+            session["logged_in"] = True
+            session["user_id"] = user.id
+            session["email"] = email
+            await flash("User created and logged in", "success")
+
+            return redirect("/")
+        else:
+            await flash("CRA CRA CRASH", "error")
+            form.email.errors.append("Email already registered")
+
     return await render_template("register.html", form=form)
+
+
+@app.route("/login", methods=["GET", "POST"])
+async def login():
+    form = await LoginForm.create_form()
+    if await form.validate_on_submit():
+        # Check password
+        from argon2 import PasswordHasher
+        import argon2
+
+        ph = PasswordHasher(memory_cost=16384)
+
+        try:
+            user = await database.get_user_by_email(form.email.data)
+            ph.verify(user["password"], form.password.data)
+            session["user_id"] = user.id
+            session["logged_in"] = True
+            session["email"] = form.email.data
+            await flash("User logged in", "success")
+
+            return redirect("/")
+        except (
+            argon2.exceptions.VerifyMismatchError,
+            database.NoResultFound,
+        ):
+            await flash("Login/password mismatch.")
+
+    return await render_template("login.html", form=form)
+
+
+@app.route("/logout", methods=["GET", "POST"])
+async def logout():
+    session.pop("logged_in", None)
+    session.pop("user_id", None)
+    await flash("Logged out", "success")  # could be error or info
+    return redirect("/")
 
 
 @app.get("/health")

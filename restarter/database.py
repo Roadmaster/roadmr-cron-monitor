@@ -3,7 +3,7 @@ from datetime import datetime, UTC
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.sql import text
 
 logger = logging.getLogger(__name__)
@@ -87,6 +87,15 @@ async def get_user_by_user_key(user_key):
     async with get_engine().connect() as conn:
         result = await conn.execute(statement, {"uk": user_key})
         r = result.mappings().fetchone()
+    return r
+
+
+async def get_user_by_email(email):
+    query = "SELECT * from user WHERE email=:em"
+    statement = text(query)
+    async with get_engine().connect() as conn:
+        result = await conn.execute(statement, {"em": email})
+        r = result.mappings().one()
     return r
 
 

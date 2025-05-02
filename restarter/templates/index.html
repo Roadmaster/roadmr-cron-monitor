@@ -1,0 +1,5 @@
+{% if session.logged_in %}
+  {% include "index_logged_in.html" %}
+{% else %}
+  {% include "index_general.html" %}
+{% endif %}
