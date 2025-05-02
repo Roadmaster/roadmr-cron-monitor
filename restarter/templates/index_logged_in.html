@@ -4,51 +4,103 @@
 
 {% block content %}
 <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl space-y-6 mb-8">
-  <h2 class="text-2xl font-bold text-gray-800">Your Monitors</h2>
+    <h2 class="text-2xl font-bold text-gray-800">Your Monitors</h2>
 
-  <table class="min-w-full divide-y divide-gray-200">
-    <thead class="bg-gray-50">
-      <tr>
-        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Name</th>
-        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Slug</th>
-        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">API Key</th>
-        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Last Checked</th>
-      </tr>
-    </thead>
-    <tbody class="bg-white divide-y divide-gray-100">
-      {% for monitor in monitors %}
-      <tr>
-        <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.name }}</td>
-        <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.slug }}</td>
-        <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.api_key }}</td>
-        <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.last_checked }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="4" class="px-4 py-4 text-center text-gray-500">No monitors set up yet.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Name</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Slug</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">API Key</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Last Checked</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-100">
+            {% for monitor in monitors %}
+            <tr>
+                <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.name }}</td>
+                <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.slug }}</td>
+                <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.api_key }}</td>
+                <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.last_checked }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="px-4 py-4 text-center text-gray-500">No monitors set up yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<!-- API key block -->
+<div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-4xl mb-6">
+    <h2 class="text-xl font-semibold mb-4">Your User API key</h2>
+    <p class="mb-2"><b>API key</b>: {{user_key}}</p>
 </div>
 <!-- How to create a monitor block -->
 <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-4xl mb-6">
-  <h2 class="text-xl font-semibold mb-4">Your User API key</h2>
-  <p class="mb-2"><b>API key</b>: {{user_key}}</p>
-</div>
-<div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-4xl">
-  <h2 class="text-xl font-semibold mb-4">How to Create a Monitor</h2>
-  <p class="mb-2">Everything here is API-driven! Call the API using, for example, <code>curl</code>:</p>
-  <pre class="mb-4"><code>curl -v  -H "x-user-key: {{user_key}}" -XPOST http://c28.ca/monitors \
-  -H "content-type: application/json" -d '{"frequency": "60", \
-  "name": "a descriptive name", "slug": "first-monitor", \
+    <h2 class="text-xl font-semibold mb-4">How to Create a Monitor</h2>
+    <p class="mb-2">Everything here is API-driven! Call the API using, for example, <code>curl</code>:</p>
+    <pre class="mb-4"><code>curl -v  -H "x-user-key: {{user_key}}" \
+    -XPOST http://c28.ca/monitors  -H "content-type: application/json" \
+    -d '{"frequency": "60", "name": "a descriptive name", "slug": "first-monitor", \
   "webhook":{"url":"https://webhook.example.com", "method": "post"}}'</code></pre>
-  <p class="mb-2">
-    You'll receive a unique API key and slug. Your cron job should call the endpoint using a simple
+    <p class="mb-2">
+    You'll receive a unique API key and slug in a JSON response as follows:
+    <pre>
+{
+  "api_key": "SOME_API_KEY",
+  "monitor_url": "http://c28.ca/monitor/first-monitor",
+  "name": "a descriptive name",
+  "report_if_not_called_in": 60,
+  "webhook": {
+    "body_payload": null,
+    "form_fields": {
+      "message": "Checkin failed after 86400",
+      "title": "My first monitor failed check-in",
+      "token": "whatever",
+      "user": "yaddda"
+    },
+    "headers": null,
+    "method": "post",
+    "url": "https://api.pushover.net/1/messages.json"
+  }
+}
+    </pre>
+    <p class="mb-2">. Your cron job should call the endpoint using a simple
     <code class="bg-gray-100 px-1 py-0.5 rounded text-sm">curl</code> command.
-  </p>
-  <p class="mb-2">
+    </p>
+    <p class="mb-2">
     If the endpoint isn't called within the expected interval, the configured webhook will be triggered with a custom payload to alert you.
-  </p>
+    </p>
+</div>
+<!-- Payload block -->
+<div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-4xl mb-6">
+    <h2 class="text-xl font-semibold mb-4">The -d payload format is awful</h2>
+    <p class="mb-2">Yes it is! but it's just json. It can be easier to put it in a file. This example documents all supported options:</p>
+    <pre class="mb-4"><code>
+{
+  "frequency": "60",
+  "name": "My first monitor",
+  "slug": "first-monitor",
+  "webhook": {
+    "method": "post",
+    "url": "https://api.pushover.net/1/messages.json",
+    "headers": {"x-foo": "bar"},
+    "form_fields": {
+      "token": "MY_TOKEN",
+      "user": "THE_USER",
+      "title": "My first monitor failed check-in",
+      "message": "Checkin failed after 60"
+    },
+    "payload": "Possible POST body payload"
+  }
+}
+    </code></pre>
+    <p class="mb-2">
+    Then the <code>curl</code> call becomes:
+
+    <pre class="mb-4"><code>curl -v  -H "x-user-key: {{user_key}}" -XPOST \
+    http://c28.ca/monitors -H "content-type: application/json" \
+    -d @the-file.json</code></pre>
 </div>
 {% endblock %}

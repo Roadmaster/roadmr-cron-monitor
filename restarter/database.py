@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, UTC
+import json
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -190,6 +191,10 @@ async def insert_monitor(user_id, name, api_key, frequency, slug):
 
 
 async def insert_webhook(monitor_id, url, method, headers, form_fields, body_payload):
+    # headers, form_fields, body_payload must be json-encoded
+    headers = json.dumps(headers)
+    form_fields = json.dumps(form_fields)
+    body_payload = json.dumps(body_payload)
     query = (
         "INSERT INTO webhook (monitor_id, url, method, headers, "
         "form_fields, body_payload) "
