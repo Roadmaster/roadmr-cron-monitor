@@ -90,6 +90,15 @@ async def get_user_by_user_key(user_key):
     return r
 
 
+async def get_user_by_user_id(user_id):
+    query = "SELECT * from user WHERE id=:ui"
+    statement = text(query)
+    async with get_engine().connect() as conn:
+        result = await conn.execute(statement, {"ui": user_id})
+        r = result.mappings().fetchone()
+    return r
+
+
 async def get_user_by_email(email):
     query = "SELECT * from user WHERE email=:em"
     statement = text(query)

@@ -292,7 +292,16 @@ async def handle_request_validation_error(error):
 
 @app.get("/")
 async def root():
-    return await render_template("index.html")
+    if session.get("logged_in", False):
+        user = await database.get_user_by_user_id(session["user_id"])
+        if not user:
+            user_key = None
+        else:
+            user_key = user["user_key"]
+    else:
+        user_key = None
+
+    return await render_template("index.html", user_key=user_key)
 
 
 @app.route("/register", methods=["GET", "POST"])

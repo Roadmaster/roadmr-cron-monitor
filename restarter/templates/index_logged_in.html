@@ -3,7 +3,7 @@
 {% block title %}Your Monitors{% endblock %}
 
 {% block content %}
-<div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl space-y-6">
+<div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl space-y-6 mb-8">
   <h2 class="text-2xl font-bold text-gray-800">Your Monitors</h2>
 
   <table class="min-w-full divide-y divide-gray-200">
@@ -30,5 +30,25 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
+<!-- How to create a monitor block -->
+<div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-4xl mb-6">
+  <h2 class="text-xl font-semibold mb-4">Your User API key</h2>
+  <p class="mb-2"><b>API key</b>: {{user_key}}</p>
+</div>
+<div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-4xl">
+  <h2 class="text-xl font-semibold mb-4">How to Create a Monitor</h2>
+  <p class="mb-2">Everything here is API-driven! Call the API using, for example, <code>curl</code>:</p>
+  <pre class="mb-4"><code>curl -v  -H "x-user-key: {{user_key}}" -XPOST http://c28.ca/monitors \
+  -H "content-type: application/json" -d '{"frequency": "60", \
+  "name": "a descriptive name", "slug": "first-monitor", \
+  "webhook":{"url":"https://webhook.example.com", "method": "post"}}'</code></pre>
+  <p class="mb-2">
+    You'll receive a unique API key and slug. Your cron job should call the endpoint using a simple
+    <code class="bg-gray-100 px-1 py-0.5 rounded text-sm">curl</code> command.
+  </p>
+  <p class="mb-2">
+    If the endpoint isn't called within the expected interval, the configured webhook will be triggered with a custom payload to alert you.
+  </p>
 </div>
 {% endblock %}
