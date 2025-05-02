@@ -119,4 +119,13 @@
     <pre class="mb-4"><code>curl -v  -H "x-api-key: THE_API_KEY" -XPOST \
     http://c28.ca/monitor/first-monitor -H "content-type: application/json"</code></pre>
 </div>
+<!-- how to use block -->
+<div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-4xl mb-6">
+    <h2 class="text-xl font-semibold mb-4">Deleting a monitor</h2>
+    <p class="mb-2">Grab the monitor_url and your global user API_key (not the monitor's api-key) and call them like this</p>
+    <pre class="mb-4"><code>curl -v  -H "x-user-key: THE_API_KEY" -XPOST \
+    http://c28.ca/monitor/first-monitor -H "content-type: application/json"</code></pre>
+</div>
+
+
 {% endblock %}

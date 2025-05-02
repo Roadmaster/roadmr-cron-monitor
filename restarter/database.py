@@ -250,15 +250,19 @@ async def touch_webhook_by_id(wid):
 
 
 async def delete_monitor_and_webhooks_by_slug_user_key(slug, user_key):
+    print(slug, user_key)
     async with get_engine().begin() as conn:
         query = (
             "DELETE FROM webhook WHERE monitor_id in "
-            "(SELECT id FROM monitor WHERE slug=:slug AND user_key=:user_key);"
+            "(SELECT monitor.id FROM user left join monitor on user.id=monitor.user_id "
+            "WHERE slug=:slug AND user_key=:user_key)"
         )
         statement = text(query)
         await conn.execute(statement, {"slug": slug, "user_key": user_key})
         query = (
-            "DELETE FROM monitor WHERE slug=:slug AND user_key=:user_key RETURNING id"
+            "DELETE FROM monitor WHERE id in "
+            "(SELECT monitor.id FROM user left join monitor on user.id=monitor.user_id "
+            "WHERE slug=:slug AND user_key=:user_key) RETURNING id"
         )
         statement = text(query)
         result = await conn.execute(statement, {"slug": slug, "user_key": user_key})

@@ -4,13 +4,14 @@ import pytest
 import pytest_asyncio
 
 from . import app, database
-from .database import get_monitor_by_api_key_slug, get_user_by_user_key
+from .database import get_monitor_by_api_key_slug, get_user_by_user_key, text
 
 
 @pytest.fixture(name="test_app")
 def _test_app(tmpdir):
     app.config["DATABASE"] = "test.db"
     app.config["ADMIN_KEY"] = "somethingbogus"
+    app.config["SECRET_KEY"] = "sometasdihjasdhingbogus"
     return app
 
 
@@ -158,6 +159,30 @@ async def test_monitor_update(test_app, min_create_payload, sample_user, test_us
     # Confirm it updated
     mon = await get_monitor_by_api_key_slug(api_key, "testslug")
     assert mon["last_check"] is not None  # because on creation it is none
+
+
+@pytest.mark.asyncio
+async def test_monitor_delete(test_app, min_create_payload, sample_user, test_user_key):
+    test_client = test_app.test_client()
+    # Create the monitor.
+    min_create_payload["headers"]["x-user-key"] = test_user_key
+    response = await test_client.post("/monitors", **min_create_payload)
+    assert response.status_code == 200
+
+    dr = await test_client.delete(
+        f"/monitor/{min_create_payload['json']['slug']}",
+        headers={"x-user-key": test_user_key},
+    )
+
+    assert dr.status_code == 200
+
+    # Ensure dbs are empty
+
+    async with database.get_engine().begin() as conn:
+        result = await conn.execute(text("SELECT * FROM monitor"))
+        assert len(result.fetchall()) == 0
+        result = await conn.execute(text("SELECT * FROM webhook"))
+        assert len(result.fetchall()) == 0
 
 
 @pytest.mark.asyncio

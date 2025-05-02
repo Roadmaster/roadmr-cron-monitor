@@ -388,10 +388,11 @@ async def monitor_update(monitor_slug):
 
 @app.delete("/monitor/<string:monitor_slug>")
 async def monitor_delete(monitor_slug):
-    admin_key = request.headers.get("x-admin-key", None)
+    # TODO: Use header validation as in monitor create:
+    admin_key = request.headers.get("x-user-key", None)
     if not admin_key:
         return Response(status=400)
-    if not await database.delete_monitor_and_webhooks_by_slug_admin_key(
+    if not await database.delete_monitor_and_webhooks_by_slug_user_key(
         monitor_slug, admin_key
     ):
         return Response(status=404)
