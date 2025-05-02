@@ -18,7 +18,7 @@ You'll get a json block back, with a user key to use for subsequent api calls.
   "deleted_at": null,
   "email": "foo0912309123@bar2.com",
   "id": 16,
-  "password": "$argon2id$v=19$m=16384,t=3,p=4$uXcR...",
+  "password": "(crypted-pass-here)...",
   "updated_at": null,
   "user_key": "S78PPFBBYBL52529HB6SNC43FVMHY40S"
 }
