@@ -167,7 +167,6 @@ async def hit_webhook(wid, url, method, headers, form_fields, body_payload):
                     url,
                     headers=headers,
                     data=form_fields,
-                    content=body_payload,
                     follow_redirects=True,
                 )
                 print(resp.content)
@@ -178,6 +177,9 @@ async def hit_webhook(wid, url, method, headers, form_fields, body_payload):
                 print(f"{url} was hit recently, skipping for now")
         except httpx.UnsupportedProtocol:
             pass
+        except httpx.HTTPStatusError:
+            print(f"{url} hit UNSUCCESSFUL but still updating last_called time")
+            await database.touch_webhook_by_id(wid)
 
 
 async def run_migrations(db_path):
@@ -296,12 +298,15 @@ async def root():
         user = await database.get_user_by_user_id(session["user_id"])
         if not user:
             user_key = None
+            monitors = None
         else:
             user_key = user["user_key"]
+            monitors = await database.get_monitors_by_user_id(user["id"])
     else:
         user_key = None
+        monitors = None
 
-    return await render_template("index.html", user_key=user_key)
+    return await render_template("index.html", user_key=user_key, monitors=monitors)
 
 
 @app.route("/register", methods=["GET", "POST"])

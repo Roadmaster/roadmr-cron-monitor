@@ -3,34 +3,43 @@
 {% block title %}Your Monitors{% endblock %}
 
 {% block content %}
-<div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl space-y-6 mb-8">
-    <h2 class="text-2xl font-bold text-gray-800">Your Monitors</h2>
 
+
+<div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl space-y-6 mb-8">
+  <h2 class="text-2xl font-bold text-gray-800">Your Monitors</h2>
+
+  <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-            <tr>
-                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Name</th>
-                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Slug</th>
-                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">API Key</th>
-                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Last Checked</th>
-            </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-100">
-            {% for monitor in monitors %}
-            <tr>
-                <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.name }}</td>
-                <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.slug }}</td>
-                <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.api_key }}</td>
-                <td class="px-4 py-2 text-sm text-gray-800">{{ monitor.last_checked }}</td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="4" class="px-4 py-4 text-center text-gray-500">No monitors set up yet.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Name</th>
+          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Slug</th>
+          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">API Key</th>
+          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Last Checked</th>
+          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">URL</th>
+          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Form Fields</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        {% for monitor in monitors %}
+        <tr>
+          <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.name }}</td>
+          <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.slug }}</td>
+          <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.api_key }}</td>
+          <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.last_checked }}</td>
+          <td class="px-3 py-2 text-sm text-gray-800 break-all">{{ monitor.url }}</td>
+          <td class="px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap"><code>{{ monitor.form_fields }}</code></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-4 py-4 text-center text-gray-500">No monitors set up yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
+  </div>
 </div>
+
 <!-- API key block -->
 <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-4xl mb-6">
     <h2 class="text-xl font-semibold mb-4">Your User API key</h2>
@@ -102,5 +111,12 @@
     <pre class="mb-4"><code>curl -v  -H "x-user-key: {{user_key}}" -XPOST \
     http://c28.ca/monitors -H "content-type: application/json" \
     -d @the-file.json</code></pre>
+</div>
+<!-- how to use block -->
+<div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-4xl mb-6">
+    <h2 class="text-xl font-semibold mb-4">How do I call my monitor?</h2>
+    <p class="mb-2">Grab the monitor_url and api_key and call them like this</p>
+    <pre class="mb-4"><code>curl -v  -H "x-api-key: THE_API_KEY" -XPOST \
+    http://c28.ca/monitor/first-monitor -H "content-type: application/json"</code></pre>
 </div>
 {% endblock %}

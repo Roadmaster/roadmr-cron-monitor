@@ -82,6 +82,16 @@ async def get_monitor_by_api_key_slug(api_key, slug):
     return r
 
 
+async def get_monitors_by_user_id(uid):
+    query = "SELECT * from monitor LEFT JOIN webhook on monitor.id=webhook.monitor_id WHERE user_id=:uid"
+    statement = text(query)
+    async with get_engine().connect() as conn:
+        result = await conn.execute(statement, {"uid": uid})
+        r = result.mappings().fetchall()
+    print(r)
+    return r
+
+
 async def get_user_by_user_key(user_key):
     query = "SELECT * from user WHERE user_key=:uk"
     statement = text(query)

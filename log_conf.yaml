@@ -39,6 +39,7 @@ loggers:
     handlers:
       - default
     propagate: yes
+
 # Uncomment for debug level logging
 root:
   level: INFO
