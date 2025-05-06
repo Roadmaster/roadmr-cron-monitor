@@ -234,6 +234,7 @@ async def get_webhook_to_hit_by_id(wh_id):
     async with get_engine().connect() as conn:
         result = await conn.execute(statement, {"wh_id": wh_id})
         r = result.mappings().fetchone()
+    await get_engine().dispose()
     return r
 
 
@@ -247,6 +248,7 @@ async def touch_webhook_by_id(wid):
             statement,
             {"now_ts": now_ts, "wid": wid},
         )
+    await get_engine().dispose()
 
 
 async def delete_monitor_and_webhooks_by_slug_user_key(slug, user_key):
@@ -271,6 +273,7 @@ async def delete_monitor_and_webhooks_by_slug_user_key(slug, user_key):
             return value.id
         else:
             return None
+    await get_engine().dispose()
 
 
 async def insert_user(email, password_crypted, user_key):
