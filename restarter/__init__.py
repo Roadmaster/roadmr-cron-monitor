@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 QuartSchema(app)
 
-CHECK_SCHED = 10
+CHECK_SCHED = 5
 
 
 app.config.from_prefixed_env(prefix="FLYRESTARTER")
@@ -129,7 +129,7 @@ class CreateAccountForm(QuartForm):
 
 # non async
 async def check_things():
-    jitter = random.randint(2, 15)
+    jitter = random.randint(2, 5)
     app.logger.info("Checking service - jitter time %s" % jitter)
     await asyncio.sleep(jitter)
     monitors = await database.get_expired_monitors()
