@@ -4,12 +4,27 @@ import json
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.exc import IntegrityError, NoResultFound
+from sqlalchemy.exc import IntegrityError, NoResultFound  # noqa
 from sqlalchemy.sql import text
+
 
 logger = logging.getLogger(__name__)
 
 meta = sa.MetaData()
+
+
+engine = None
+
+
+def get_engine():
+    from . import app
+
+    global engine
+
+    if not engine:
+        dbfile = app.config.get("DATABASE")
+        engine = create_async_engine(f"sqlite+aiosqlite:///{dbfile}", echo=False)
+    return engine
 
 
 def utcnow():
@@ -63,14 +78,6 @@ t_webhooks = sa.Table(
 
 sa.Index("idx_apikey_slug", t_monitors.c.api_key, t_monitors.c.slug)
 sa.Index("idx_expires_at", t_monitors.c.expires_at)
-
-
-def get_engine():
-    from . import app
-
-    dbfile = app.config.get("DATABASE")
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbfile}", echo=False)
-    return engine
 
 
 async def get_monitor_by_api_key_slug(api_key, slug):
