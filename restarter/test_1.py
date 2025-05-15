@@ -4,7 +4,7 @@ import pytest
 import pytest_asyncio
 
 from . import app, database
-from .database import get_monitor_by_api_key_slug, get_user_by_user_key, text
+from .database import get_monitor_by_key, get_user_by_user_key, text
 
 
 @pytest.fixture(name="test_app")
@@ -102,12 +102,12 @@ async def test_monitor_create(test_app, min_create_payload, sample_user, test_us
     response = await test_client.post("/monitors", **min_create_payload)
     assert response.status_code == 200
     jr = await response.json
-    assert parse.urlparse(jr["monitor_url"]).path == "/monitor/testslug"
+    monitor_key = parse.urlparse(jr["monitor_url"]).path.split("/")[-1]
+    assert monitor_key.startswith("M")
     assert jr["name"] == "testmon"
     assert jr["report_if_not_called_in"] == 60
-    assert "api_key" in jr
 
-    mon = await get_monitor_by_api_key_slug(jr["api_key"], "testslug")
+    mon = await get_monitor_by_key(monitor_key[1:])  # chop off the M
 
     assert mon is not None
 
@@ -145,19 +145,20 @@ async def test_monitor_update(test_app, min_create_payload, sample_user, test_us
     response = await test_client.post("/monitors", **min_create_payload)
     assert response.status_code == 200
     jr = await response.json
-    api_key = jr["api_key"]
     path = parse.urlparse(jr["monitor_url"]).path
 
     response = await test_client.post(
         path,
-        headers={"x-api-key": api_key},
     )
     assert response.status_code == 200
     jr = await response.json
     assert jr == "Update successful"
 
     # Confirm it updated
-    mon = await get_monitor_by_api_key_slug(api_key, "testslug")
+    # split the path, grab only the last component, chop off the leading M
+    key = path.split("/")[-1][1:]
+
+    mon = await get_monitor_by_key(key)
     assert mon["last_check"] is not None  # because on creation it is none
 
 
@@ -168,9 +169,11 @@ async def test_monitor_delete(test_app, min_create_payload, sample_user, test_us
     min_create_payload["headers"]["x-user-key"] = test_user_key
     response = await test_client.post("/monitors", **min_create_payload)
     assert response.status_code == 200
+    jr = await response.json
+    path = parse.urlparse(jr["monitor_url"]).path
 
     dr = await test_client.delete(
-        f"/monitor/{min_create_payload['json']['slug']}",
+        path,
         headers={"x-user-key": test_user_key},
     )
 
@@ -183,26 +186,3 @@ async def test_monitor_delete(test_app, min_create_payload, sample_user, test_us
         assert len(result.fetchall()) == 0
         result = await conn.execute(text("SELECT * FROM webhook"))
         assert len(result.fetchall()) == 0
-
-
-@pytest.mark.asyncio
-async def test_monitor_update_bad_user_key(
-    test_app, min_create_payload, sample_user, test_user_key
-):
-    test_client = test_app.test_client()
-    # Create the monitor.
-    min_create_payload["headers"]["x-user-key"] = test_user_key
-    response = await test_client.post("/monitors", **min_create_payload)
-    assert response.status_code == 200
-    jr = await response.json
-    api_key = jr["api_key"]
-    path = parse.urlparse(jr["monitor_url"]).path
-
-    response = await test_client.post(
-        path,
-        headers={"x-api-key": "whatevs dude"},
-    )
-    assert response.status_code == 404
-    # Confirm it did not update
-    mon = await get_monitor_by_api_key_slug(api_key, "testslug")
-    assert mon["last_check"] is None

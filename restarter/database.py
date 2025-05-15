@@ -89,13 +89,21 @@ async def get_monitor_by_api_key_slug(api_key, slug):
     return r
 
 
+async def get_monitor_by_key(api_key):
+    query = "SELECT * from monitor " "WHERE api_key=:ap"
+    statement = text(query)
+    async with get_engine().connect() as conn:
+        result = await conn.execute(statement, {"ap": api_key})
+        r = result.mappings().fetchone()
+    return r
+
+
 async def get_monitors_by_user_id(uid):
     query = "SELECT * from monitor LEFT JOIN webhook on monitor.id=webhook.monitor_id WHERE user_id=:uid"
     statement = text(query)
     async with get_engine().connect() as conn:
         result = await conn.execute(statement, {"uid": uid})
         r = result.mappings().fetchall()
-    print(r)
     return r
 
 
@@ -146,11 +154,11 @@ async def get_expired_monitors():
     return expimon
 
 
-async def update_monitor(slug, apikey):
+async def update_monitor(key):
     query = (
         "UPDATE monitor SET last_check=:now, "
         "expires_at=:now_ts + frequency "
-        "WHERE api_key=:apikey AND slug=:slug "
+        "WHERE api_key=:key "
         "RETURNING monitor.id"
     )
     statement = text(query)
@@ -161,8 +169,7 @@ async def update_monitor(slug, apikey):
             statement,
             {
                 "now": datetime.now(UTC),
-                "apikey": apikey,
-                "slug": slug,
+                "key": key,
                 "now_ts": now_ts,
             },
         )
@@ -258,23 +265,26 @@ async def touch_webhook_by_id(wid):
     await get_engine().dispose()
 
 
-async def delete_monitor_and_webhooks_by_slug_user_key(slug, user_key):
-    print(slug, user_key)
+async def delete_monitor_and_webhooks_by_monitor_key_user_key(monitor_key, user_key):
     async with get_engine().begin() as conn:
         query = (
             "DELETE FROM webhook WHERE monitor_id in "
             "(SELECT monitor.id FROM user left join monitor on user.id=monitor.user_id "
-            "WHERE slug=:slug AND user_key=:user_key)"
+            "WHERE api_key=:monitor_key AND user_key=:user_key)"
         )
         statement = text(query)
-        await conn.execute(statement, {"slug": slug, "user_key": user_key})
+        await conn.execute(
+            statement, {"monitor_key": monitor_key, "user_key": user_key}
+        )
         query = (
             "DELETE FROM monitor WHERE id in "
             "(SELECT monitor.id FROM user left join monitor on user.id=monitor.user_id "
-            "WHERE slug=:slug AND user_key=:user_key) RETURNING id"
+            "WHERE api_key=:monitor_key AND user_key=:user_key) RETURNING id"
         )
         statement = text(query)
-        result = await conn.execute(statement, {"slug": slug, "user_key": user_key})
+        result = await conn.execute(
+            statement, {"monitor_key": monitor_key, "user_key": user_key}
+        )
         value = result.fetchone()
         if value:
             return value.id

@@ -374,26 +374,23 @@ async def health():
     return {"health": "good!"}
 
 
-@app.post("/monitor/<string:monitor_slug>")
-async def monitor_update(monitor_slug):
-    api_key = request.headers.get("x-api-key", None)
-    if not api_key:
-        return Response(status=400)
-    if not await database.update_monitor(monitor_slug, api_key):
+@app.post("/monitor/M<string:monitor_key>")
+async def monitor_update(monitor_key):
+    if not await database.update_monitor(monitor_key):
         return Response(status=404)
     response = jsonify("Update successful")
     response.status = 200
     return response
 
 
-@app.delete("/monitor/<string:monitor_slug>")
-async def monitor_delete(monitor_slug):
+@app.delete("/monitor/M<string:monitor_key>")
+async def monitor_delete(monitor_key):
     # TODO: Use header validation as in monitor create:
     admin_key = request.headers.get("x-user-key", None)
     if not admin_key:
         return Response(status=400)
-    if not await database.delete_monitor_and_webhooks_by_slug_user_key(
-        monitor_slug, admin_key
+    if not await database.delete_monitor_and_webhooks_by_monitor_key_user_key(
+        monitor_key, admin_key
     ):
         return Response(status=404)
     response = jsonify("Delete successful")
@@ -462,11 +459,10 @@ async def monitor_create(data: MonitorIn, headers: Headers):
 
     return {
         "monitor_url": url_for(
-            "monitor_update", monitor_slug=monitor.slug, _external=True
+            "monitor_update", monitor_key=monitor.api_key, _external=True
         ),
         "report_if_not_called_in": monitor.frequency,
         "name": monitor.name,
-        "api_key": monitor.api_key,
         "webhook": {
             "url": webhook.url,
             "method": webhook.method,

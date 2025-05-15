@@ -45,11 +45,10 @@ curl  -H "x-user-key: S78PPFBB.." -XPOST http://localhost:8000/monitors \
 ```
 (For pushover, we only need webhook_form_fields)
 
-You'll get a json block back, make note of the URL to call and API key.
+You'll get a json block back, make note of the URL to call which contains a unique key.
 ```
 {
-  "api_key": "TGRKXAOML96XV03S",
-  "monitor_url": "https://foo.bar/monitor/second-monitor",
+  "monitor_url": "https://foo.bar/ABABABABABABABABABABABABA",
   "name": "first-monitor",
   "report_if_not_called_in": 86400
 }
@@ -57,7 +56,7 @@ You'll get a json block back, make note of the URL to call and API key.
 ```
 2. Call your monitor. Must be a POST request with empty body.
 ```
-curl -XPOST https://localhost:8000/monitor/second-monitor -H "x-api-key: TGRKXAOML96XV03S"
+curl -XPOST https://localhost:8000/ABABABABABABABABABABABABABA"
 ```
 
 3. If you haven't called the monitor in 86400 seconds (a day), the webhook fires.
