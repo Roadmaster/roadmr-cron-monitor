@@ -14,10 +14,10 @@
         <tr>
           <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Name</th>
           <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Slug</th>
-          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">API Key</th>
+          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Monitor URL</th>
           <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Last Checked</th>
-          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">URL</th>
-          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Form Fields</th>
+          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Webhook URL</th>
+          <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Webhook Form Fields</th>
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-100">
@@ -25,7 +25,7 @@
         <tr>
           <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.name }}</td>
           <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.slug }}</td>
-          <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.api_key }}</td>
+          <td class="px-3 py-2 text-sm text-gray-800">{{ url_for("monitor_update", monitor_key=monitor.api_key, _external=True)  }}</td>
           <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.last_checked }}</td>
           <td class="px-3 py-2 text-sm text-gray-800 break-all">{{ monitor.url }}</td>
           <td class="px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap"><code>{{ monitor.form_fields }}</code></td>
