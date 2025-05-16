@@ -160,7 +160,7 @@ async def hit_webhook(wid, url, method, headers, form_fields, body_payload):
     async with httpx.AsyncClient() as client:
         try:
             if await database.get_webhook_to_hit_by_id(wid):
-                print(f"{url} has not been hit recently")
+                print(f"{url} for {wid} has not been hit recently")
 
                 resp = await client.request(
                     method,
@@ -171,14 +171,14 @@ async def hit_webhook(wid, url, method, headers, form_fields, body_payload):
                 )
                 print(resp.content)
                 resp.raise_for_status()
-                print(f"{url} hit successful, updating last_called time")
+                print(f"{url} for {wid} hit successful, updating last_called time")
                 await database.touch_webhook_by_id(wid)
             else:
-                print(f"{url} was hit recently, skipping for now")
+                print(f"{url} for {wid} was hit recently, skipping for now")
         except httpx.UnsupportedProtocol:
             pass
         except httpx.HTTPStatusError:
-            print(f"{url} hit UNSUCCESSFUL but still updating last_called time")
+            print(f"{url} {wid} hit UNSUCCESSFUL but still updating last_called time")
             await database.touch_webhook_by_id(wid)
 
 
