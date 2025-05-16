@@ -10,6 +10,7 @@ primary_region = 'atl'
 
 [env]
 FLYRESTARTER_DATABASE="/data/restarter-alembic-managed-2.db"
+FLYRESTARTER_CHECK_INTERVAL_SECONDS=300
 PYTHONUNBUFFERED=1
 
 [http_service]

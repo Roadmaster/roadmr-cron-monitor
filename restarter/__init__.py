@@ -52,8 +52,6 @@ logger = logging.getLogger(__name__)
 
 QuartSchema(app)
 
-CHECK_SCHED = 10
-
 
 app.config.from_prefixed_env(prefix="FLYRESTARTER")
 
@@ -189,7 +187,9 @@ async def run_migrations(db_path):
 
 
 scheduler = AsyncIOScheduler()
-scheduler.add_job(check_things, "interval", seconds=CHECK_SCHED)
+scheduler.add_job(
+    check_things, "interval", seconds=app.config.get("CHECK_INTERVAL_SECONDS", 60)
+)
 
 
 async def init_db():
