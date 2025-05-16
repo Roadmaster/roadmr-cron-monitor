@@ -50,11 +50,12 @@ t_monitors = sa.Table(
     sa.Column("id", sa.Integer, primary_key=True),
     sa.Column("user_id", sa.Integer, sa.ForeignKey("user.id"), nullable=False),
     sa.Column("name", sa.Text, nullable=False),
-    sa.Column("slug", sa.Text, nullable=False, unique=True),
+    sa.Column("slug", sa.Text, nullable=False),
     sa.Column("frequency", sa.Integer, nullable=False),
     sa.Column("expires_at", sa.Integer, nullable=False),
     sa.Column("api_key", sa.Text, nullable=False),
     sa.Column("last_check", sa.DateTime, nullable=True),
+    sa.UniqueConstraint("user_id", "slug", name="uix_user_id_slug"),
 )
 
 t_webhooks = sa.Table(

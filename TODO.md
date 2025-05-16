@@ -7,5 +7,5 @@
 [X] uniqueness constraint for user emails
 [X] decent pw hashing for users
 [X] require user key when creating a monitor
-[ ] uniqueness constraint for monitor slugs scoped per user
+[X] uniqueness constraint for monitor slugs scoped per user
 [ ] hit_webhook retry with exponential backoff

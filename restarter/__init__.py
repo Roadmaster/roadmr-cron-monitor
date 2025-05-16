@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 QuartSchema(app)
 
-CHECK_SCHED = 5
+CHECK_SCHED = 10
 
 
 app.config.from_prefixed_env(prefix="FLYRESTARTER")

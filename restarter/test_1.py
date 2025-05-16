@@ -58,9 +58,19 @@ def test_user_key():
     return "A" * 32
 
 
+@pytest.fixture(autouse=True)
+def test_user_key_two():
+    return "Z" * 32
+
+
 @pytest_asyncio.fixture
 async def sample_user(db, test_user_key):
     await database.insert_user("foo@bar.com", "correct-hoarse", test_user_key)
+
+
+@pytest_asyncio.fixture
+async def sample_user_two(db, test_user_key_two):
+    await database.insert_user("foo2@bar.com", "incorrect-hoarse", test_user_key_two)
 
 
 @pytest.mark.asyncio
@@ -113,7 +123,7 @@ async def test_monitor_create(test_app, min_create_payload, sample_user, test_us
 
 
 @pytest.mark.asyncio
-async def test_monitor_create_dupe_slug(
+async def test_monitor_create_dupe_slug_same_user(
     test_app, min_create_payload, sample_user, test_user_key
 ):
     test_client = test_app.test_client()
@@ -123,6 +133,24 @@ async def test_monitor_create_dupe_slug(
     response = await test_client.post("/monitors", **min_create_payload)
     assert response.status_code == 400
     assert "Monitor with this slug already exists" in (await response.json)["error"]
+
+
+@pytest.mark.asyncio
+async def test_monitor_create_dupe_slug_other_user(
+    test_app,
+    min_create_payload,
+    sample_user,
+    sample_user_two,
+    test_user_key,
+    test_user_key_two,
+):
+    test_client = test_app.test_client()
+    # Create the monitor for user one
+    min_create_payload["headers"]["x-user-key"] = test_user_key
+    response = await test_client.post("/monitors", **min_create_payload)
+    min_create_payload["headers"]["x-user-key"] = test_user_key_two
+    response = await test_client.post("/monitors", **min_create_payload)
+    assert response.status_code == 200
 
 
 @pytest.mark.asyncio
