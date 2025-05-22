@@ -127,7 +127,8 @@ class CreateAccountForm(QuartForm):
 
 # non async
 async def check_things():
-    jitter = random.randint(2, 5)
+    ra = random.SystemRandom()
+    jitter = ra.randint(2, 12)
     app.logger.info("Checking service - jitter time %s" % jitter)
     await asyncio.sleep(jitter)
     monitors = await database.get_expired_monitors()
