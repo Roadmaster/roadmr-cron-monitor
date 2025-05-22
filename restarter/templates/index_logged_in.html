@@ -26,7 +26,7 @@
           <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.name }}</td>
           <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.slug }}</td>
           <td class="px-3 py-2 text-sm text-gray-800">{{ url_for("monitor_update", monitor_key=monitor.api_key, _external=True)  }}</td>
-          <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.last_checked }}</td>
+          <td class="px-3 py-2 text-sm text-gray-800">{{ monitor.last_check | default("Awaiting first check!", true)}}</td>
           <td class="px-3 py-2 text-sm text-gray-800 break-all">{{ monitor.url }}</td>
           <td class="px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap"><code>{{ monitor.form_fields }}</code></td>
         </tr>
