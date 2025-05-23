@@ -12,7 +12,7 @@
     <li>Register a monitor — you'll receive an API key.</li>
     <li>
       Your cron job calls the monitoring endpoint with the slug and API key:<br>
-      <code class="bg-gray-100 text-sm p-2 rounded block mt-1">curl -XPOST {{url_for("monitor_update", monitor_key="AAABBBCCC")}} </code>
+      <code class="bg-gray-100 text-sm p-2 rounded block mt-1">curl -XPOST {{url_for("monitor_update", monitor_key="AAABBBCCC", _external="True")}} </code>
     </li>
     <li>
       If the cron job doesn't ping within the specified period (e.g., 1 hour, 1 day, 1 week), Cron Monitor will trigger your webhook with a customizable payload (headers, form data, query string).
