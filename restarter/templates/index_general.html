@@ -9,9 +9,9 @@
   <p>Don't let scheduled jobs fail silently. Cron Monitor helps ensure your scripts execute on time and reliably.</p>
 
   <ol class="list-decimal list-inside space-y-2">
-    <li>Register a monitor — you'll receive an API key.</li>
+    <li>Register a monitor — for each monitor, you'll receive a unique URL to call.</li>
     <li>
-      Your cron job calls the monitoring endpoint with the slug and API key:<br>
+      Your cron job calls the unique URL:<br>
       <code class="bg-gray-100 text-sm p-2 rounded block mt-1">curl -XPOST {{url_for("monitor_update", monitor_key="AAABBBCCC", _external="True")}} </code>
     </li>
     <li>
